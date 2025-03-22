@@ -1,0 +1,11 @@
+cmake-build-debug/
+*.slo
+*.lo
+*.o
+*.a
+*.la
+*.lai
+*.so
+*.so.*
+*.dll
+*.dylib

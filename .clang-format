@@ -9,3 +9,4 @@ BraceWrapping:
 PointerAlignment: Left
 SpaceAfterTemplateKeyword: false
 SpacesInContainerLiterals: false
+InsertNewlineAtEOF: true

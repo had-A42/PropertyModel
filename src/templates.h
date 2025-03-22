@@ -3,6 +3,7 @@
 #include <functional>
 #include <tuple>
 
+namespace Templates {
 using IndexType = int;
 
 // виды переменных
@@ -14,128 +15,200 @@ template<IndexType Size>
 struct Value {};
 
 template<IndexType Size>
-struct Outs {};
+struct Out {};
 
 // Get - "достать тип из контейнера"
 
-template<IndexType index, typename List>
+namespace detail {
+template<IndexType index, typename TypeContainer>
 struct GetHelper;
 
-template<typename FirstArg, typename... Args>
-struct GetHelper<0, std::tuple<FirstArg, Args...>> {
+template<template<typename...> typename TypeContainer, typename FirstArg,
+         typename... Args>
+struct GetHelper<0, TypeContainer<FirstArg, Args...>> {
   using type = FirstArg;
 };
 
-template<IndexType index, typename FirstArg, typename... Args>
-struct GetHelper<index, std::tuple<FirstArg, Args...>> {
-  using type = typename GetHelper<index - 1, std::tuple<Args...>>::type;
+template<IndexType index, template<typename...> typename TypeContainer,
+         typename FirstArg, typename... Args>
+struct GetHelper<index, TypeContainer<FirstArg, Args...>> {
+  using type = typename GetHelper<index - 1, TypeContainer<Args...>>::type;
 };
+} // namespace detail
 
-template<IndexType index, typename List>
-using Get = typename GetHelper<index, List>::type;
+template<IndexType index, typename TypeContainer>
+using Get = typename detail::GetHelper<index, TypeContainer>::type;
 
 // Type - "достать тип из Data<1>, например"
-
-/* я бы хотел не прописывать DataTuple, ValueTuple, OutsTuple в шаблоне, но
- * для этого, кажется, нужно перенести все эти классы во внутрь билдера,
- * не уверен, насколько это хорошая идея
- * */
-template<typename T, typename DataTuple, typename ValueTuple,
-         typename OutsTuple>
+namespace detail {
+template<typename T, typename DataTuple, typename ValueTuple, typename OutTuple>
 struct TypeHelper;
 
 template<IndexType index, typename DataTuple, typename ValueTuple,
-         typename OutsTuple>
-struct TypeHelper<Data<index>, DataTuple, ValueTuple, OutsTuple> {
+         typename OutTuple>
+struct TypeHelper<Data<index>, DataTuple, ValueTuple, OutTuple> {
   using type = Get<index, DataTuple>;
 };
 
 template<IndexType index, typename DataTuple, typename ValueTuple,
-         typename OutsTuple>
-struct TypeHelper<Value<index>, DataTuple, ValueTuple, OutsTuple> {
+         typename OutTuple>
+struct TypeHelper<Value<index>, DataTuple, ValueTuple, OutTuple> {
   using type = Get<index, ValueTuple>;
 };
 
 template<IndexType index, typename DataTuple, typename ValueTuple,
-         typename OutsTuple>
-struct TypeHelper<Outs<index>, DataTuple, ValueTuple, OutsTuple> {
-  using type = Get<index, OutsTuple>;
+         typename OutTuple>
+struct TypeHelper<Out<index>, DataTuple, ValueTuple, OutTuple> {
+  using type = Get<index, OutTuple>;
 };
+} // namespace detail
 
-template<typename T, typename DataTuple, typename ValueTuple,
-         typename OutsTuple>
-using Type = typename TypeHelper<T, DataTuple, ValueTuple, OutsTuple>::type;
+template<typename T, typename DataTuple, typename ValueTuple, typename OutTuple>
+using Type =
+    typename detail::TypeHelper<T, DataTuple, ValueTuple, OutTuple>::type;
 
-template<typename DataTuple, typename ValueTuple, typename OutsTuple,
+namespace detail {
+template<typename DataTuple, typename ValueTuple, typename OutTuple,
          typename... Args>
 struct SignatureHelper;
 
-template<typename DataTuple, typename ValueTuple, typename OutsTuple,
+template<typename DataTuple, typename ValueTuple, typename OutTuple,
          typename Output, typename... Inputs>
-struct SignatureHelper<DataTuple, ValueTuple, OutsTuple, Output, Inputs...> {
-  using type = std::function<Type<Output, DataTuple, ValueTuple, OutsTuple>(
-      Type<Inputs, DataTuple, ValueTuple, OutsTuple>...)>;
+struct SignatureHelper<DataTuple, ValueTuple, OutTuple, Output, Inputs...> {
+  using type = std::function<Type<Output, DataTuple, ValueTuple, OutTuple>(
+      Type<Inputs, DataTuple, ValueTuple, OutTuple>...)>;
+};
+} // namespace detail
+
+template<typename DataTuple, typename ValueTuple, typename OutTuple,
+         typename... Args>
+using Signature = typename detail::SignatureHelper<DataTuple, ValueTuple,
+                                                   OutTuple, Args...>::type;
+
+// PushFront
+namespace detail {
+template<auto Element, typename ElementContainer>
+struct PushFrontHelper;
+
+template<typename ElementType,
+         template<typename, ElementType...> typename ElementContainer,
+         ElementType Element, ElementType... Elements>
+struct PushFrontHelper<Element, ElementContainer<ElementType, Elements...>> {
+  using type = ElementContainer<ElementType, Element, Elements...>;
+};
+} // namespace detail
+
+template<auto Element, typename ElementContainer>
+using PushFront = detail::PushFrontHelper<Element, ElementContainer>::type;
+
+// MakeSequence - последовательность для For
+namespace detail {
+template<typename ElementType, ElementType... Elements>
+struct List {};
+
+template<IndexType from, IndexType to, IndexType step, bool in_range>
+struct MakeSequenceHelper {
+  using type =
+      PushFront<from, typename MakeSequenceHelper<from + step, to, step,
+                                                  (from + step < to)>::type>;
 };
 
-template<typename DataTuple, typename ValueTuple, typename OutsTuple,
-         typename... Args>
-using Signature =
-    typename SignatureHelper<DataTuple, ValueTuple, OutsTuple, Args...>::type;
+template<IndexType from, IndexType to, IndexType step>
+struct MakeSequenceHelper<from, to, step, false> {
+  using type = List<IndexType>;
+};
+
+template<IndexType from, IndexType to, IndexType step>
+using MakeSequence =
+    detail::MakeSequenceHelper<from, to, step, (from < to)>::type;
+
+// For
+
+template<typename Sequence>
+struct ForHelper;
+
+template<typename ElementType,
+         template<typename, ElementType...> typename ElementContainer,
+         ElementType... Elements>
+struct ForHelper<ElementContainer<ElementType, Elements...>> {
+  template<template<IndexType> typename Function, typename... ArgsType>
+  static void Do(ArgsType&&... args) {
+    (Function<Elements>()(std::forward<ArgsType>(args)...), ...);
+  }
+};
+} // namespace detail
+
+template<IndexType from, IndexType to, IndexType step>
+struct For : detail::ForHelper<detail::MakeSequence<from, to, step>> {};
+
+// Size
+
+namespace detail {
+template<typename ElementContainer>
+struct SizeHelper;
+
+template<template<typename...> typename TypeContainer, typename... Args>
+struct SizeHelper<TypeContainer<Args...>> {
+  static constexpr IndexType value = sizeof...(Args);
+};
+} // namespace detail
+
+template<typename ElementContainer>
+constexpr IndexType Size = detail::SizeHelper<ElementContainer>::value;
 
 // Ref<Data<1>> -> cсылка на первый элемент DataTuple
-template<typename T, typename DataTuple, typename ValueTuple,
-         typename OutsTuple>
+template<typename T, typename DataTuple, typename ValueTuple, typename OutTuple>
 struct Ref;
 
-template<typename DataTuple, typename ValueTuple, typename OutsTuple,
+template<typename DataTuple, typename ValueTuple, typename OutTuple,
          IndexType index>
-struct Ref<Data<index>, DataTuple, ValueTuple, OutsTuple> {
-  static auto& Get(DataTuple& data, ValueTuple& value, OutsTuple& outs) {
+struct Ref<Data<index>, DataTuple, ValueTuple, OutTuple> {
+  static auto& Get(DataTuple& data, ValueTuple& value, OutTuple& out) {
     return std::get<index>(data);
   }
 };
 
-template<typename DataTuple, typename ValueTuple, typename OutsTuple,
+template<typename DataTuple, typename ValueTuple, typename OutTuple,
          IndexType index>
-struct Ref<Value<index>, DataTuple, ValueTuple, OutsTuple> {
-  static auto& Get(DataTuple& data, ValueTuple& value, OutsTuple& outs) {
+struct Ref<Value<index>, DataTuple, ValueTuple, OutTuple> {
+  static auto& Get(DataTuple& data, ValueTuple& value, OutTuple& out) {
     return std::get<index>(value);
   }
 };
 
-template<typename DataTuple, typename ValueTuple, typename OutsTuple,
+template<typename DataTuple, typename ValueTuple, typename OutTuple,
          IndexType index>
-struct Ref<Outs<index>, DataTuple, ValueTuple, OutsTuple> {
-  static auto& Get(DataTuple& data, ValueTuple& value, OutsTuple& outs) {
-    return std::get<index>(outs);
+struct Ref<Out<index>, DataTuple, ValueTuple, OutTuple> {
+  static auto& Get(DataTuple& data, ValueTuple& value, OutTuple& out) {
+    return std::get<index>(out);
   }
 };
 
 // ConstRef<Data<1>> -> константная cсылка на первый элемент DataTuple
-template<typename DataTuple, typename ValueTuple, typename OutsTuple,
-         typename T>
+template<typename DataTuple, typename ValueTuple, typename OutTuple, typename T>
 struct ConstRef;
 
-template<typename DataTuple, typename ValueTuple, typename OutsTuple,
+template<typename DataTuple, typename ValueTuple, typename OutTuple,
          IndexType index>
-struct ConstRef<Data<index>, DataTuple, ValueTuple, OutsTuple> {
-  static const auto& Get(DataTuple& data, ValueTuple& value, OutsTuple& outs) {
+struct ConstRef<Data<index>, DataTuple, ValueTuple, OutTuple> {
+  static const auto& Get(DataTuple& data, ValueTuple& value, OutTuple& Out) {
     return std::get<index>(data);
   }
 };
 
-template<typename DataTuple, typename ValueTuple, typename OutsTuple,
+template<typename DataTuple, typename ValueTuple, typename OutTuple,
          IndexType index>
-struct ConstRef<Value<index>, DataTuple, ValueTuple, OutsTuple> {
-  static const auto& Get(DataTuple& data, ValueTuple& value, OutsTuple& outs) {
+struct ConstRef<Value<index>, DataTuple, ValueTuple, OutTuple> {
+  static const auto& Get(DataTuple& data, ValueTuple& value, OutTuple& Out) {
     return std::get<index>(value);
   }
 };
 
-template<typename DataTuple, typename ValueTuple, typename OutsTuple,
+template<typename DataTuple, typename ValueTuple, typename OutTuple,
          IndexType index>
-struct ConstRef<Outs<index>, DataTuple, ValueTuple, OutsTuple> {
-  static const auto& Get(DataTuple& data, ValueTuple& value, OutsTuple& outs) {
-    return std::get<index>(outs);
+struct ConstRef<Out<index>, DataTuple, ValueTuple, OutTuple> {
+  static const auto& Get(DataTuple& data, ValueTuple& value, OutTuple& Out) {
+    return std::get<index>(Out);
   }
 };
+} // namespace Templates
