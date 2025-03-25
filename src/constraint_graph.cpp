@@ -48,4 +48,52 @@ Constraint* ConstraintGraph::FindLowestPriorityBlockedConstraint() {
 ConstraintPtrs& ConstraintGraph::GetAllConstraints() {
   return constraints_;
 }
+
+void ConstraintGraph::ExecutePlan(StepType& propagation_counter) {
+  ++propagation_counter;
+  /*
+   * Тут возникла проблема, что без перехода на индексы и формирования явного
+   * графа решения не получается вычислить план исполнения с сохранением
+   * асимптотики O(V+E)
+   */
+  SolutionGraphOnIndices solution(variables_.size());
+  for (auto constraint : constraints_) {
+    if (constraint->IsApplied()) {
+      for (auto variable : constraint->selected_method->in) {
+        solution[variable->global_index].push_back(constraint);
+      }
+    }
+  }
+
+  std::vector<Constraint*> execution_plan;
+  for (auto constraint : constraints_) {
+    if (constraint->IsApplied()) {
+      FormExecutionPlan(solution, execution_plan, propagation_counter,
+                        constraint);
+    }
+  }
+
+  std::reverse(execution_plan.begin(), execution_plan.end());
+
+  for (auto constraint : execution_plan) {
+    constraint->Execute();
+  }
+  ++propagation_counter;
+}
+
+void ConstraintGraph::FormExecutionPlan(
+    SolutionGraphOnIndices& solution, std::vector<Constraint*>& execution_plan,
+    StepType& propagation_counter, Constraint* constraint) {
+  constraint->UpdateStep(propagation_counter);
+  Variable* output = constraint->GetSelectedMethodOut();
+  for (auto next_constraints : solution[output->global_index]) {
+    assert(!next_constraints->IsProcessing(propagation_counter));
+    if (!next_constraints->IsExecutedInCurrentStep(propagation_counter)) {
+      FormExecutionPlan(solution, execution_plan, propagation_counter,
+                        next_constraints);
+    }
+  }
+  constraint->UpdateStep(propagation_counter + 1);
+  execution_plan.push_back(constraint);
+}
 } // namespace NSPropertyModel

@@ -31,12 +31,8 @@ public:
         new_constraint_(
             Priority{Priority::Status::Regular, Priority::Strength{0}}) {};
 
-  void AddNewConstraint(Priority priority = Priority{Priority::Status::Regular,
-                                                     Priority::Strength{0}}) {
-    new_constraint_.priority = priority;
-    assert(new_constraint_.methods.size() != 0);
-    property_model_->ReceiveConstraint(std::move(new_constraint_));
-    new_constraint_ = Constraint();
+  void AddNewConstraint(Priority::Strength strength) {
+    AddNewConstraintImpl(Priority{Priority::Status::Regular, strength});
   }
 
   template<typename Output, typename... Inputs>
@@ -48,6 +44,7 @@ public:
   }
 
   PropertyModel&& ExtractPM() {
+    AddNewConstraint(Priority::Strength{0});
     AddAllStay();
     property_model_->SetStayPriority(current_stay_priority_);
     property_model_->HandleVariableEntries();
@@ -57,7 +54,7 @@ public:
 
   template<typename MetaData>
   void Set(SpecializedTypeof<MetaData> value) {
-    property_model_->template Set<MetaData>(std::move(value));
+    property_model_->template SetBeforeExtract<MetaData>(std::move(value));
   }
 
   void CallPrint() {
@@ -65,12 +62,23 @@ public:
   }
 
 private:
+  void AddNewConstraintImpl(Priority priority) {
+    if (!new_constraint_.methods.empty()) {
+      property_model_->ReceiveConstraint(std::move(new_constraint_));
+    }
+    new_constraint_ = Constraint(priority);
+  }
+
   template<typename MetaData>
   struct AddStayImpl {
     void operator()(Builder* builder) {
-      auto value = builder->property_model_->template GetRef<MetaData>();
-      builder->AddMethod<MetaData>([&value]() { return value; });
-      builder->AddNewConstraint(builder->current_stay_priority_);
+      Templates::Type<MetaData, DataTypes, ValueTypes, OutTypes>* value =
+          builder->property_model_->template GetRef<MetaData>();
+      builder->AddNewConstraintImpl(builder->current_stay_priority_);
+      builder->AddMethod<MetaData>([value]() { return *value; });
+
+      // очищаем буффер new_constraint чтобы привязать stay к переменной
+      builder->AddNewConstraint(Priority::Strength{0});
       builder->property_model_->template AttachStay<MetaData>();
       ++builder->current_stay_priority_;
     }
@@ -101,12 +109,13 @@ private:
   };
 
   void AddAllStay() {
-    Templates::For<0, Templates::Size<DataTypes>,
-                   1>::template Do<AddDataStayImpl>(this);
-    Templates::For<0, Templates::Size<ValueTypes>,
-                   1>::template Do<AddValueStayImpl>(this);
     Templates::For<0, Templates::Size<OutTypes>,
                    1>::template Do<AddOutStayImpl>(this);
+    AddNewConstraint(Priority::Strength{0});
+    Templates::For<0, Templates::Size<ValueTypes>,
+                   1>::template Do<AddValueStayImpl>(this);
+    Templates::For<0, Templates::Size<DataTypes>,
+                   1>::template Do<AddDataStayImpl>(this);
   };
 
   Priority current_stay_priority_ = {

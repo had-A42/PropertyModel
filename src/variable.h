@@ -7,14 +7,15 @@ namespace NSPropertyModel {
 struct Constraint;
 
 using IndexType = Templates::IndexType;
-using StepType = int;
+using StepType = Templates::StepType;
 using ConstraintPtrs = std::vector<Constraint*>;
 
 struct Variable {
   enum class Type { Data, Value, Out };
-  enum class Index : IndexType;
+  //  enum class Index : IndexType;
 
-  Variable(Type type, Index index);
+  Variable(Type type, IndexType index, IndexType global_index);
+  //        Variable(Type type, IndexType index, IndexType global_index, );
 
   void UpdatePriority();
   void UpdateStep(StepType propagation_index);
@@ -28,7 +29,8 @@ struct Variable {
   bool IsProcessing(StepType current_step);
 
   Type type;
-  Index index;
+  IndexType index;
+  IndexType global_index;
 
   StepType last_propagation = StepType{0};
   Priority priority;
@@ -37,57 +39,4 @@ struct Variable {
   ConstraintPtrs involved_as_potential_output;
 };
 
-template<typename T>
-struct VariableMaker;
-
-template<IndexType Index>
-struct VariableMaker<Templates::Data<Index>> {
-  static Variable Make() {
-    return Variable(Variable::Type::Data, Variable::Index{Index});
-  }
-};
-
-template<IndexType Index>
-struct VariableMaker<Templates::Value<Index>> {
-  static Variable Make() {
-    return Variable(Variable::Type::Value, Variable::Index{Index});
-  }
-};
-
-template<IndexType Index>
-struct VariableMaker<Templates::Out<Index>> {
-  static Variable Make() {
-    return Variable(Variable::Type::Out, Variable::Index{Index});
-  }
-};
-
-template<typename T, typename DataTypes, typename ValueTypes, typename OutTypes>
-struct VariableIndexGetter;
-
-template<IndexType Index, typename DataTypes, typename ValueTypes,
-         typename OutTypes>
-struct VariableIndexGetter<Templates::Data<Index>, DataTypes, ValueTypes,
-                           OutTypes> {
-  static IndexType Get() {
-    return Index;
-  }
-};
-
-template<IndexType Index, typename DataTypes, typename ValueTypes,
-         typename OutTypes>
-struct VariableIndexGetter<Templates::Value<Index>, DataTypes, ValueTypes,
-                           OutTypes> {
-  static IndexType Get() {
-    return Index + Templates::Size<DataTypes>;
-  }
-};
-
-template<IndexType Index, typename DataTypes, typename ValueTypes,
-         typename OutTypes>
-struct VariableIndexGetter<Templates::Out<Index>, DataTypes, ValueTypes,
-                           OutTypes> {
-  static IndexType Get() {
-    return Index + Templates::Size<DataTypes> + Templates::Size<ValueTypes>;
-  }
-};
 } // namespace NSPropertyModel

@@ -3,8 +3,9 @@
 
 namespace NSPropertyModel {
 
-Variable::Variable(Type type, Index index)
-    : type(type), index(index), determined_by(nullptr) {};
+Variable::Variable(Type type, IndexType index, IndexType global_index)
+    : type(type), index(index), global_index(global_index),
+      determined_by(nullptr) {};
 
 void Variable::UpdatePriority() {
   priority = std::min({determined_by->priority,

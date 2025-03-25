@@ -8,6 +8,7 @@
 
 namespace NSPropertyModel {
 using IndexType = Templates::IndexType;
+using StepType = Templates::StepType;
 // static constexpr int k_non_ = -1;
 
 struct Variable;
@@ -30,10 +31,16 @@ struct Constraint {
   Constraint(Priority priority, std::vector<std::unique_ptr<Method>> methods);
 
   auto operator[](IndexType index);
-
   const auto operator[](IndexType index) const;
 
   void PushBackMethod(std::unique_ptr<Method> method);
+
+  void UpdateStep(StepType propagation_index);
+
+  bool IsExecutedInCurrentStep(StepType current_step);
+  bool IsProcessing(StepType current_step);
+
+  void Execute();
 
   Variable* GetSelectedMethodOut();
   void SetSelectedMethodNull();
@@ -59,10 +66,11 @@ struct Constraint {
   void MarkDisabled();
 
   enum class State { Applied, Unused, Disabled };
-  std::vector<std::unique_ptr<Method>> methods;
   State state = State::Disabled;
   Method* selected_method = nullptr;
   NSPropertyModel::Priority priority;
+  StepType last_execution = StepType{0};
+  std::vector<std::unique_ptr<Method>> methods;
   //    std::vector<Method*> methods;
   //        std::vector<Method> methods;
 };

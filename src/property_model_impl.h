@@ -74,9 +74,14 @@ class PropertyModelImpl<Data<DataArgs...>, Value<ValueArgs...>,
   template<typename Output, typename... Inputs>
   using Signature =
       Templates::Signature<DataTuple, ValueTuple, OutTuple, Output, Inputs...>;
+
   template<typename MetaData>
-  using IndexGetter =
-      VariableIndexGetter<MetaData, DataTuple, ValueTuple, OutTuple>;
+  static constexpr IndexType IndexGetter =
+      Templates::GlobalIndex<MetaData, DataTuple, ValueTuple, OutTuple>;
+
+  static constexpr IndexType data_size_ = Templates::Size<DataTypes>;
+  static constexpr IndexType value_size_ = Templates::Size<ValueTypes>;
+  static constexpr IndexType out_size_ = Templates::Size<OutTypes>;
 
   friend Builder;
 
@@ -103,8 +108,6 @@ public:
     for (int i = 0; i < constraints_.size(); ++i) {
       std::cout << "\t" << i << " " << *constraints_[i].get();
     }
-    std::cout
-        << "_____________________________________________________________\n";
   }
 
   PropertyModelImpl() = delete;
@@ -124,70 +127,42 @@ public:
 
     //  TD<List<SpecifyArithmeic<DataArgs>...>> x;
 
-    Templates::For<0, Templates::Size<DataTypes>,
-                   1>::template Do<InitDataVariableImpl>(this);
-    Templates::For<0, Templates::Size<ValueTypes>,
-                   1>::template Do<InitValueVariableImpl>(this);
-    Templates::For<0, Templates::Size<OutTypes>,
-                   1>::template Do<InitOutVariableImpl>(this);
+    Templates::For<0, data_size_, 1>::template Do<InitDataVariableImpl>(this);
+    Templates::For<0, value_size_, 1>::template Do<InitValueVariableImpl>(this);
+    Templates::For<0, out_size_, 1>::template Do<InitOutVariableImpl>(this);
   };
-
-  void Update() {
-    char meta_marker;
-    IndexType index;
-    std::cout << "Enter meta marker and index (D/V/O): ";
-    std::cin >> meta_marker;
-
-    switch (meta_marker) {
-    case 'D':
-      std::cin >> index;
-      if (index >= Templates::Size<DataTypes>) {
-        std::cout << "Index out of range!\n";
-      }
-      //      std::cin >> std::get<index>(data_);
-      NSDeltaBlue::DeltaBlue::UpdateStayPriority(c_graph_, GetStay(index),
-                                                 current_stay_priority_,
-                                                 propagation_counter_);
-      break;
-    case 'V':
-      std::cin >> index;
-      if (index >= Templates::Size<ValueTypes>) {
-        std::cout << "Index out of range!\n";
-      }
-      //      std::cin >> std::get<index>(value_);
-      NSDeltaBlue::DeltaBlue::UpdateStayPriority(
-          c_graph_, GetStay(index + Templates::Size<DataTypes>),
-          current_stay_priority_, propagation_counter_);
-      break;
-    case 'O':
-      std::cin >> index;
-      if (index >= Templates::Size<OutTypes>) {
-        std::cout << "Index out of range!\n";
-      }
-      //      std::cin >> std::get<index>(out_);
-      NSDeltaBlue::DeltaBlue::UpdateStayPriority(
-          c_graph_,
-          GetStay(index + Templates::Size<ValueTypes> +
-                  Templates::Size<DataTypes>),
-          current_stay_priority_, propagation_counter_);
-      break;
-    default:
-      std::cout << "Invalid MetaData marker!\n";
-    }
-    ++current_stay_priority_;
-  }
 
   void RemoveConstraint(IndexType constraint_index) {
     NSDeltaBlue::DeltaBlue::RemoveConstraintByIndex(c_graph_, constraint_index,
                                                     propagation_counter_);
+    c_graph_.ExecutePlan(propagation_counter_);
   }
 
   void AddConstraint(IndexType constraint_index) {
     NSDeltaBlue::DeltaBlue::AddConstraintByIndex(c_graph_, constraint_index,
                                                  propagation_counter_);
+    c_graph_.ExecutePlan(propagation_counter_);
+  }
+
+  template<typename MetaData>
+  void Set(SpecializedTypeof<MetaData> value) {
+    Refto<MetaData>::Get(data_, value_, out_) = std::move(value);
+
+    Constraint* stay = variables_[IndexGetter<MetaData>].get()->stay;
+
+    NSDeltaBlue::DeltaBlue::UpdateStayPriority(
+        c_graph_, stay, current_stay_priority_, propagation_counter_);
+    ++current_stay_priority_;
+
+    c_graph_.ExecutePlan(propagation_counter_);
   }
 
 private:
+  template<typename MetaData>
+  void SetBeforeExtract(SpecializedTypeof<MetaData> value) {
+    Refto<MetaData>::Get(data_, value_, out_) = std::move(value);
+  }
+
   void InitConstraintGraph() {
     NSDeltaBlue::DeltaBlue::Initialise(constraints_, variables_, c_graph_,
                                        propagation_counter_);
@@ -202,7 +177,7 @@ private:
   struct InitDataVariableImpl {
     void operator()(PropertyModelImpl* impl) {
       impl->variables_.push_back(std::make_unique<Variable>(
-          Variable::Type::Data, Variable::Index{Index}));
+          Variable::Type::Data, Index, IndexGetter<Templates::Data<Index>>));
     }
   };
 
@@ -210,7 +185,7 @@ private:
   struct InitValueVariableImpl {
     void operator()(PropertyModelImpl* impl) {
       impl->variables_.push_back(std::make_unique<Variable>(
-          Variable::Type::Value, Variable::Index{Index}));
+          Variable::Type::Value, Index, IndexGetter<Templates::Value<Index>>));
     }
   };
 
@@ -218,7 +193,7 @@ private:
   struct InitOutVariableImpl {
     void operator()(PropertyModelImpl* impl) {
       impl->variables_.push_back(std::make_unique<Variable>(
-          Variable::Type::Out, Variable::Index{Index}));
+          Variable::Type::Out, Index, IndexGetter<Templates::Out<Index>>));
     }
   };
 
@@ -230,29 +205,16 @@ private:
     };
 
     Method method = {.action = action};
-    method.out.push_back(variables_[IndexGetter<Output>::Get()].get());
-    (method.in.push_back(variables_[IndexGetter<Inputs>::Get()].get()), ...);
+    method.out.push_back(variables_[IndexGetter<Output>].get());
+    (method.in.push_back(variables_[IndexGetter<Inputs>].get()), ...);
 
     return std::make_unique<Method>(std::move(method));
   }
 
   template<typename MetaData>
   void AttachStay() {
-    IndexType index = IndexGetter<MetaData>::Get();
+    IndexType index = IndexGetter<MetaData>;
     variables_[index].get()->stay = constraints_.back().get();
-    variables_[index].get()->involved_as_potential_output.push_back(
-        constraints_.back().get());
-  }
-
-  auto GetStay(IndexType index) {
-    return variables_[index].get()->stay;
-  }
-
-  template<typename MetaData>
-  void Set(SpecializedTypeof<MetaData> value) {
-    Refto<MetaData>::Get(data_, value_, out_) = std::move(value);
-    //    TD<List<SpecifyArithmeic<Templates::Type<Variable, DataTuple,
-    //    ValueTuple, OutTuple>>>> x;
   }
 
   void ReceiveConstraint(Constraint&& c) {
@@ -271,9 +233,10 @@ private:
 
   template<typename MetaData>
   auto GetRef() {
-    return Refto<MetaData>::Get(data_, value_, out_);
+    return &Refto<MetaData>::Get(data_, value_, out_);
   }
 
+  std::tuple<DataArgs*...> data_refs_;
   DataTuple data_;
   ValueTuple value_;
   OutTuple out_;

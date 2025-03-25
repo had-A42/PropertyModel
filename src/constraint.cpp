@@ -20,6 +20,23 @@ void Constraint::PushBackMethod(std::unique_ptr<Method> method) {
   methods.push_back(std::move(method));
 }
 
+void Constraint::UpdateStep(StepType propagation_index) {
+  last_execution = propagation_index;
+}
+
+bool Constraint::IsExecutedInCurrentStep(StepType current_step) {
+  return current_step + 1 == last_execution;
+}
+
+bool Constraint::IsProcessing(StepType current_step) {
+  return current_step == last_execution;
+}
+
+void Constraint::Execute() {
+  assert(selected_method != nullptr);
+  selected_method->Execute();
+}
+
 auto Constraint::operator[](IndexType index) {
   return methods[index].get();
 }
@@ -91,7 +108,7 @@ Constraint::PotentialOutputsMinPriority(NSPropertyModel::Variable* variable) {
 Method* Constraint::OutputMinPriorityMethod() {
   NSPropertyModel::Priority min_priority = {
       NSPropertyModel::Priority::Status::Regular,
-      NSPropertyModel::Priority::Strength{0}};
+      NSPropertyModel::Priority::Strength{-1}};
   Method* min_priority_method = nullptr;
   for (auto& method : methods) {
     if (min_priority > method->GetOut()->priority) {

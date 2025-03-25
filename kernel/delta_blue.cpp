@@ -40,12 +40,12 @@ void DeltaBlue::AddConstraint(ConstraintGraph& c_graph,
   if (!new_constraint->IsBlocked()) {
     if (new_constraint->IsRequired()) {
       std::cout << "ALARM: failed to fulfil the required constraint!!!\n";
-      return;
     }
+    return;
   }
 
   Method* method_candidate = new_constraint->OutputMinPriorityMethod();
-  Variable* output_candidate = new_constraint->OutputMinPriorityVariable();
+  Variable* output_candidate = method_candidate->GetOut();
   ReversePath(output_candidate);
 
   output_candidate->determined_by = new_constraint;
@@ -87,6 +87,7 @@ void DeltaBlue::RemoveConstraint(ConstraintGraph& c_graph,
   Constraint* output_stay = output->GetStay();
   output->SetDeterminedBy(output_stay);
   output_stay->SelectMethodByIndex(0);
+  output_stay->MarkApplied();
 
   UpdatingPropagation(output, propagation_counter);
 
@@ -124,6 +125,7 @@ void DeltaBlue::UpdatingPropagation(Variable* variable,
                                     StepType& propagation_counter) {
   ++propagation_counter;
   UpdatingPropagationImpl(variable, propagation_counter);
+  ++propagation_counter;
 }
 
 void DeltaBlue::UpdatingPropagationImpl(Variable* variable,
@@ -136,9 +138,7 @@ void DeltaBlue::UpdatingPropagationImpl(Variable* variable,
       continue;
     Variable* next_variable = constraint->GetSelectedMethodOut();
     if (next_variable->IsProcessing(propagation_counter)) {
-      std::cout << "ALARM: Cycle!!! Property Model is dying!!!\nпо-русски вам "
-                   "напоминаю, что не создавать циклы из ограничений это ваша "
-                   "обязанность\n";
+      std::cout << "ALARM: Cycle!!! Property Model is dying!!!\n";
       exit(1); // TODO
     } else if (!next_variable->IsUpdatedInCurrentStep(propagation_counter)) {
       UpdatingPropagationImpl(next_variable, propagation_counter);

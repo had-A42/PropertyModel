@@ -4,7 +4,7 @@ project(pm)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-add_executable(pm src/main.cpp
+add_executable(pm tests/dialog_resizing_graphical_object.cpp
         src/constraint.cpp
         src/priority.cpp
         kernel/delta_blue.cpp

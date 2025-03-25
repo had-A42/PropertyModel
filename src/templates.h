@@ -5,6 +5,7 @@
 
 namespace Templates {
 using IndexType = int;
+using StepType = int;
 
 // виды переменных
 
@@ -211,4 +212,37 @@ struct ConstRef<Out<index>, DataTuple, ValueTuple, OutTuple> {
     return std::get<index>(Out);
   }
 };
+
+namespace detail {
+template<typename T, typename DataTypes, typename ValueTypes, typename OutTypes>
+struct VariableIndexGetter;
+
+template<IndexType Index, typename DataTypes, typename ValueTypes,
+         typename OutTypes>
+struct VariableIndexGetter<Templates::Data<Index>, DataTypes, ValueTypes,
+                           OutTypes> {
+  static constexpr IndexType value = Index;
+};
+
+template<IndexType Index, typename DataTypes, typename ValueTypes,
+         typename OutTypes>
+struct VariableIndexGetter<Templates::Value<Index>, DataTypes, ValueTypes,
+                           OutTypes> {
+  static constexpr IndexType value = Index + Templates::Size<DataTypes>;
+};
+
+template<IndexType Index, typename DataTypes, typename ValueTypes,
+         typename OutTypes>
+struct VariableIndexGetter<Templates::Out<Index>, DataTypes, ValueTypes,
+                           OutTypes> {
+  static constexpr IndexType value =
+      Index + Templates::Size<DataTypes> + Templates::Size<ValueTypes>;
+};
+} //  namespace detail
+
+template<typename MetaData, typename DataTypes, typename ValueTypes,
+         typename OutTypes>
+static constexpr IndexType GlobalIndex =
+    detail::VariableIndexGetter<MetaData, DataTypes, ValueTypes,
+                                OutTypes>::value;
 } // namespace Templates
