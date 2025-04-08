@@ -4,18 +4,16 @@
 #include "templates.h"
 
 namespace NSPropertyModel {
-struct Constraint;
-
-using IndexType = Templates::IndexType;
-using StepType = Templates::StepType;
-using ConstraintPtrs = std::vector<Constraint*>;
+class Constraint;
 
 struct Variable {
+  using IndexType = Templates::IndexType;
+  using StepType = Templates::StepType;
+  using ConstraintPtrs = std::vector<Constraint*>;
+
   enum class Type { Data, Value, Out };
-  //  enum class Index : IndexType;
 
   Variable(Type type, IndexType index, IndexType global_index);
-  //        Variable(Type type, IndexType index, IndexType global_index, );
 
   void UpdatePriority();
   void UpdateStep(StepType propagation_index);
@@ -39,4 +37,6 @@ struct Variable {
   ConstraintPtrs involved_as_potential_output;
 };
 
+std::ostream& operator<<(std::ostream& out, const Variable::Type& type);
+std::ostream& operator<<(std::ostream& out, const Variable& variable);
 } // namespace NSPropertyModel

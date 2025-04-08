@@ -6,15 +6,15 @@
 #include "variable.h"
 
 namespace NSPropertyModel {
-using Constraints = std::vector<std::unique_ptr<Constraint>>;
-using Variables = std::vector<std::unique_ptr<Variable>>;
-
-using ConstraintPtrs = std::vector<Constraint*>;
-using VariablesPtrs = std::vector<Variable*>;
-
-using SolutionGraphOnIndices = std::vector<std::vector<Constraint*>>;
-
 class ConstraintGraph {
+  using Constraints = std::vector<std::unique_ptr<Constraint>>;
+  using Variables = std::vector<std::unique_ptr<Variable>>;
+
+  using ConstraintPtrs = std::vector<Constraint*>;
+  using VariablesPtrs = std::vector<Variable*>;
+
+  using SolutionGraphOnIndices = std::vector<std::vector<Constraint*>>;
+
 public:
   ConstraintGraph() = default;
 
@@ -23,7 +23,7 @@ public:
   void InitConstraints(Constraints& constraints);
   void InitVariables(Variables& variables);
 
-  void AddConstraint(Constraint* constraint);
+  //  void AddConstraint(Constraint* constraint);
 
   void Clear();
 
@@ -36,7 +36,7 @@ public:
 
 private:
   void FormExecutionPlan(SolutionGraphOnIndices& solution,
-                         std::vector<Constraint*>& execution_plan,
+                         ConstraintPtrs& execution_plan,
                          StepType& propagation_counter, Constraint* constraint);
 
   ConstraintPtrs constraints_;

@@ -52,7 +52,7 @@ void Query(PropertyModel& pm) {
         std::cout << "Index out of range!\n";
       }
       std::cout << "Enter the value: ";
-            double value;
+      double value;
       switch (index) {
       case 0:
         std::cin >> value;

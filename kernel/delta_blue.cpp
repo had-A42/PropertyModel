@@ -1,7 +1,7 @@
 #include "delta_blue.h"
 
-namespace NSDeltaBlue {
-void DeltaBlue::Initialise(Constraints& constraints, Variables& variables,
+namespace NSPropertyModel {
+void DeltaBlue::Initialize(Constraints& constraints, Variables& variables,
                            ConstraintGraph& c_graph,
                            StepType& propagation_counter) {
   c_graph.Clear();
@@ -9,7 +9,7 @@ void DeltaBlue::Initialise(Constraints& constraints, Variables& variables,
   c_graph.InitConstraints(constraints);
   c_graph.InitVariables(variables);
 
-  for (auto constraint : c_graph.GetAllConstraints()) {
+  for (const auto& constraint : c_graph.GetAllConstraints()) {
     if (constraint->IsStay()) {
       constraint->SelectMethodByIndex(0);
       constraint->MarkApplied();
@@ -18,7 +18,7 @@ void DeltaBlue::Initialise(Constraints& constraints, Variables& variables,
     }
   }
 
-  for (auto constraint : c_graph.GetAllConstraints()) {
+  for (const auto& constraint : c_graph.GetAllConstraints()) {
     if (!constraint->IsStay()) {
       AddConstraint(c_graph, constraint, propagation_counter);
     }
@@ -28,15 +28,13 @@ void DeltaBlue::Initialise(Constraints& constraints, Variables& variables,
 void DeltaBlue::AddConstraint(ConstraintGraph& c_graph,
                               Constraint* new_constraint,
                               StepType& propagation_counter) {
-
-  //  assert(new_constraint->IsDisable());
-  //  assert(new_constraint->selected_method == nullptr);
+  assert(new_constraint != nullptr);
   if (!new_constraint->IsDisable()) {
     std::cout << "Constraint already added\n";
     return;
   }
 
-  c_graph.AddConstraint(new_constraint);
+  new_constraint->MarkUnused();
   if (!new_constraint->IsBlocked()) {
     if (new_constraint->IsRequired()) {
       std::cout << "ALARM: failed to fulfil the required constraint!!!\n";
@@ -56,9 +54,8 @@ void DeltaBlue::AddConstraint(ConstraintGraph& c_graph,
   UpdatingPropagation(output_candidate, propagation_counter);
 }
 
-void DeltaBlue::AddConstraintByIndex(
-    NSDeltaBlue::ConstraintGraph& c_graph, NSDeltaBlue::IndexType index,
-    NSDeltaBlue::StepType& propagation_counter) {
+void DeltaBlue::AddConstraintByIndex(ConstraintGraph& c_graph, IndexType index,
+                                     StepType& propagation_counter) {
   Constraint* new_constraint = c_graph.GetByIndex(index);
   AddConstraint(c_graph, new_constraint, propagation_counter);
 }
@@ -66,8 +63,6 @@ void DeltaBlue::AddConstraintByIndex(
 void DeltaBlue::RemoveConstraint(ConstraintGraph& c_graph,
                                  Constraint* constraint_to_remove,
                                  StepType& propagation_counter) {
-  //  Constraint* constraint_to_remove = c_graph.GetByIndex(index);
-
   if (constraint_to_remove->IsStay()) {
     std::cout << "Not allowed to delete Stay!!!\n";
     return;
@@ -97,18 +92,18 @@ void DeltaBlue::RemoveConstraint(ConstraintGraph& c_graph,
   }
 }
 
-void DeltaBlue::RemoveConstraintByIndex(
-    NSDeltaBlue::ConstraintGraph& c_graph, NSDeltaBlue::IndexType index,
-    NSDeltaBlue::StepType& propagation_counter) {
+void DeltaBlue::RemoveConstraintByIndex(ConstraintGraph& c_graph,
+                                        IndexType index,
+                                        StepType& propagation_counter) {
   Constraint* constraint_to_remove = c_graph.GetByIndex(index);
   RemoveConstraint(c_graph, constraint_to_remove, propagation_counter);
 }
 
 void DeltaBlue::UpdateStayPriority(ConstraintGraph& c_graph, Constraint* stay,
-                                   NSPropertyModel::Priority priority,
+                                   Priority priority,
                                    StepType& propagation_counter) {
   assert(stay->IsStay());
-  assert(priority.status == NSPropertyModel::Priority::Status::Stay);
+  assert(priority.status == Priority::Status::Stay);
 
   stay->priority = priority;
   if (stay->IsApplied()) {
@@ -132,7 +127,7 @@ void DeltaBlue::UpdatingPropagationImpl(Variable* variable,
                                         StepType& propagation_counter) {
   variable->UpdatePriority();
   variable->UpdateStep(propagation_counter);
-  for (auto& constraint : variable->involved_as_potential_output) {
+  for (const auto& constraint : variable->involved_as_potential_output) {
     if (!constraint->IsApplied() ||
         constraint->GetSelectedMethodOut() == variable)
       continue;
@@ -155,7 +150,6 @@ void DeltaBlue::ReversePath(Variable* variable) {
   }
 
   if (current_constraint->IsReversiblePathSource()) {
-    //    current_constraint->selected_method->GetOut()->SetDeterminedByNull();
     variable->SetDeterminedByNull();
     current_constraint->SetSelectedMethodNull();
     current_constraint->MarkUnused();
@@ -167,5 +161,4 @@ void DeltaBlue::ReversePath(Variable* variable) {
     current_constraint->SelectMethod(next_determining_method);
   }
 }
-
-} // namespace NSDeltaBlue
+} // namespace NSPropertyModel

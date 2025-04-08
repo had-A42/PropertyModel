@@ -11,24 +11,13 @@
 #include "../src/templates.h"
 #include "../src/variable.h"
 
-namespace NSDeltaBlue {
-using IndexType = Templates::IndexType;
-using StepType = NSPropertyModel::StepType;
-
-using ConstraintGraph = NSPropertyModel::ConstraintGraph;
-using Constraint = NSPropertyModel::Constraint;
-using Method = NSPropertyModel::Method;
-using Variable = NSPropertyModel::Variable;
-
-using Constraint = NSPropertyModel::Constraint;
-using Variable = NSPropertyModel::Variable;
-
-using Constraints = std::vector<std::unique_ptr<Constraint>>;
-using Variables = std::vector<std::unique_ptr<Variable>>;
-
+namespace NSPropertyModel {
 class DeltaBlue {
+  using Constraints = std::vector<std::unique_ptr<Constraint>>;
+  using Variables = std::vector<std::unique_ptr<Variable>>;
+
 public:
-  static void Initialise(Constraints& constraints, Variables& variables,
+  static void Initialize(Constraints& constraints, Variables& variables,
                          ConstraintGraph& c_graph,
                          StepType& propagation_counter);
 
@@ -46,17 +35,17 @@ public:
   static void RemoveConstraintByIndex(ConstraintGraph& c_graph, IndexType index,
                                       StepType& propagation_counter);
 
-  static void UpdateStayPriority(ConstraintGraph& c_graph, Constraint* stay,
-                                 NSPropertyModel::Priority priority,
-                                 StepType& propagation_counter);
+    static void UpdateStayPriority(ConstraintGraph& c_graph, Constraint* stay,
+                                   Priority priority,
+                                   StepType& propagation_counter);
 
 private:
-  static void UpdatingPropagation(Variable* variable,
-                                  StepType& propagation_counter);
+    static void UpdatingPropagation(Variable* variable,
+                                    StepType& propagation_counter);
 
-  static void UpdatingPropagationImpl(Variable* variable,
-                                      StepType& propagation_counter);
+    static void UpdatingPropagationImpl(Variable* variable,
+                                        StepType& propagation_counter);
 
-  static void ReversePath(Variable* variable);
+    static void ReversePath(Variable* variable);
 };
-} // namespace NSDeltaBlue
+} // namespace NSPropertyModel

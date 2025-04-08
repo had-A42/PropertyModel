@@ -17,8 +17,6 @@
 
 namespace NSPropertyModel {
 
-using IndexType = Templates::IndexType;
-
 template<typename... DataArgs>
 struct Data;
 
@@ -83,6 +81,9 @@ class PropertyModelImpl<Data<DataArgs...>, Value<ValueArgs...>,
   static constexpr IndexType value_size_ = Templates::Size<ValueTypes>;
   static constexpr IndexType out_size_ = Templates::Size<OutTypes>;
 
+  static constexpr Priority min_stay_priority = {Priority::Status::Stay,
+                                                 Priority::Strength{0}};
+
   friend Builder;
 
 public:
@@ -132,15 +133,15 @@ public:
     Templates::For<0, out_size_, 1>::template Do<InitOutVariableImpl>(this);
   };
 
-  void RemoveConstraint(IndexType constraint_index) {
-    NSDeltaBlue::DeltaBlue::RemoveConstraintByIndex(c_graph_, constraint_index,
-                                                    propagation_counter_);
+  void AddConstraint(IndexType constraint_index) {
+    DeltaBlue::AddConstraintByIndex(c_graph_, constraint_index,
+                                    propagation_counter_);
     c_graph_.ExecutePlan(propagation_counter_);
   }
 
-  void AddConstraint(IndexType constraint_index) {
-    NSDeltaBlue::DeltaBlue::AddConstraintByIndex(c_graph_, constraint_index,
-                                                 propagation_counter_);
+  void RemoveConstraint(IndexType constraint_index) {
+    DeltaBlue::RemoveConstraintByIndex(c_graph_, constraint_index,
+                                       propagation_counter_);
     c_graph_.ExecutePlan(propagation_counter_);
   }
 
@@ -148,10 +149,10 @@ public:
   void Set(SpecializedTypeof<MetaData> value) {
     Refto<MetaData>::Get(data_, value_, out_) = std::move(value);
 
-    Constraint* stay = variables_[IndexGetter<MetaData>].get()->stay;
+    Constraint* stay = variables_[IndexGetter<MetaData>]->stay;
 
-    NSDeltaBlue::DeltaBlue::UpdateStayPriority(
-        c_graph_, stay, current_stay_priority_, propagation_counter_);
+    DeltaBlue::UpdateStayPriority(c_graph_, stay, current_stay_priority_,
+                                  propagation_counter_);
     ++current_stay_priority_;
 
     c_graph_.ExecutePlan(propagation_counter_);
@@ -164,11 +165,11 @@ private:
   }
 
   void InitConstraintGraph() {
-    NSDeltaBlue::DeltaBlue::Initialise(constraints_, variables_, c_graph_,
-                                       propagation_counter_);
+    DeltaBlue::Initialize(constraints_, variables_, c_graph_,
+                          propagation_counter_);
   }
 
-  void SetStayPriority(Priority priority) {
+  void SetCurrentStayPriority(Priority priority) {
     assert(priority.status == Priority::Status::Stay);
     current_stay_priority_ = priority;
   }
@@ -214,7 +215,7 @@ private:
   template<typename MetaData>
   void AttachStay() {
     IndexType index = IndexGetter<MetaData>;
-    variables_[index].get()->stay = constraints_.back().get();
+    variables_[index]->stay = constraints_.back().get();
   }
 
   void ReceiveConstraint(Constraint&& c) {
@@ -222,9 +223,9 @@ private:
     Constraint* new_constraint = constraints_.back().get();
   }
 
-  void HandleVariableEntries() {
-    for (auto& constraint : constraints_) {
-      for (auto& method : constraint.get()->methods) {
+  void СollectPotentialOutputs() {
+    for (const auto& constraint : constraints_) {
+      for (const auto& method : constraint->methods) {
         Variable* output = method->GetOut();
         output->involved_as_potential_output.push_back(constraint.get());
       }
@@ -244,8 +245,7 @@ private:
   Variables variables_;
   Constraints constraints_;
 
-  Priority current_stay_priority_ = {Priority::Status::Stay,
-                                     Priority::Strength{-1}};
+  Priority current_stay_priority_ = min_stay_priority;
   ConstraintGraph c_graph_;
   StepType propagation_counter_ = StepType{0};
 };

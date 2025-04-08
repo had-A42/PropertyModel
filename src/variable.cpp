@@ -35,4 +35,24 @@ bool Variable::IsUpdatedInCurrentStep(StepType current_step) {
 bool Variable::IsProcessing(StepType current_step) {
   return current_step == last_propagation;
 }
+
+std::ostream& operator<<(std::ostream& out, const Variable::Type& type) {
+  switch (type) {
+  case (Variable::Type::Data):
+    std::cout << "Data";
+    break;
+  case (Variable::Type::Value):
+    std::cout << "Value";
+    break;
+  case (Variable::Type::Out):
+    std::cout << "Out";
+  }
+
+  return out;
+}
+
+std::ostream& operator<<(std::ostream& out, const Variable& variable) {
+  std::cout << variable.type << "<" << variable.index << ">";
+  return out;
+}
 } // namespace NSPropertyModel

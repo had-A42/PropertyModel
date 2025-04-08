@@ -2,9 +2,7 @@
 
 #include "property_model_impl.h"
 
-namespace NSPropertyModel {
-namespace detail {
-static constexpr int min_priority_strength_ = -1;
+namespace NSPropertyModel::detail {
 template<typename... DataArgs, typename... ValueArgs, typename... OutArgs>
 class Builder<Data<DataArgs...>, Value<ValueArgs...>, Out<OutArgs...>> {
   using DataTypes = Data<DataArgs...>;
@@ -12,7 +10,6 @@ class Builder<Data<DataArgs...>, Value<ValueArgs...>, Out<OutArgs...>> {
   using OutTypes = Out<OutArgs...>;
 
   using PropertyModel = PropertyModel<DataTypes, ValueTypes, OutTypes>;
-  //  using Builder = Builder<DataTypes, ValueTypes, OutTypes>;
 
   template<typename Output, typename... Inputs>
   using Signature =
@@ -22,14 +19,18 @@ class Builder<Data<DataArgs...>, Value<ValueArgs...>, Out<OutArgs...>> {
   using SpecializedTypeof = SpecifyArithmeic<
       Templates::Type<MetaData, DataTypes, ValueTypes, OutTypes>>;
 
+  static constexpr Priority min_stay_priority = {Priority::Status::Stay,
+                                                 Priority::Strength{0}};
+  static constexpr Priority max_regular_priority = {Priority::Status::Regular,
+                                                    Priority::Strength{0}};
+
 public:
-  Builder(detail::SpecifyArithmeic<DataArgs>... data,
-          detail::SpecifyArithmeic<ValueArgs>... value,
-          detail::SpecifyArithmeic<OutArgs>... out)
+  Builder(SpecifyArithmeic<DataArgs>... data,
+          SpecifyArithmeic<ValueArgs>... value,
+          SpecifyArithmeic<OutArgs>... out)
       : property_model_(std::move(data)..., std::move(value)...,
                         std::move(out)...),
-        new_constraint_(
-            Priority{Priority::Status::Regular, Priority::Strength{0}}) {};
+        new_constraint_(max_regular_priority) {};
 
   void AddNewConstraint(Priority::Strength strength) {
     AddNewConstraintImpl(Priority{Priority::Status::Regular, strength});
@@ -43,11 +44,11 @@ public:
     new_constraint_.PushBackMethod(std::move(action));
   }
 
-  PropertyModel&& ExtractPM() {
+  PropertyModel ExtractPM() {
     AddNewConstraint(Priority::Strength{0});
     AddAllStay();
-    property_model_->SetStayPriority(current_stay_priority_);
-    property_model_->HandleVariableEntries();
+    property_model_->SetCurrentStayPriority(current_stay_priority_);
+    property_model_->СollectPotentialOutputs();
     property_model_->InitConstraintGraph();
     return std::move(property_model_);
   }
@@ -109,20 +110,16 @@ private:
   };
 
   void AddAllStay() {
-    Templates::For<0, Templates::Size<OutTypes>,
-                   1>::template Do<AddOutStayImpl>(this);
+    using namespace Templates;
+    For<0, Size<OutTypes>, 1>::template Do<AddOutStayImpl>(this);
     AddNewConstraint(Priority::Strength{0});
-    Templates::For<0, Templates::Size<ValueTypes>,
-                   1>::template Do<AddValueStayImpl>(this);
-    Templates::For<0, Templates::Size<DataTypes>,
-                   1>::template Do<AddDataStayImpl>(this);
+    For<0, Size<ValueTypes>, 1>::template Do<AddValueStayImpl>(this);
+    For<0, Size<DataTypes>, 1>::template Do<AddDataStayImpl>(this);
   };
 
-  Priority current_stay_priority_ = {
-      Priority::Status::Stay, Priority::Strength{min_priority_strength_}};
+  Priority current_stay_priority_ = min_stay_priority;
   PropertyModel property_model_;
   Constraint new_constraint_;
 };
 
-} // namespace detail
-} // namespace NSPropertyModel
+} // namespace NSPropertyModel::detail

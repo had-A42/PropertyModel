@@ -10,6 +10,15 @@ Variable* Method::GetOut() {
   return out[0];
 }
 
+const Variable* Method::GetOut() const {
+  return out[0];
+}
+
+std::ostream& operator<<(std::ostream& out, const Method& method) {
+  std::cout << "has out " << *method.GetOut();
+  return out;
+}
+
 Constraint::Constraint(Priority priority) : priority(priority) {};
 
 Constraint::Constraint(Priority priority,
@@ -46,7 +55,7 @@ const auto Constraint::operator[](IndexType index) const {
 }
 
 bool Constraint::IsStay() {
-  return priority.status == NSPropertyModel::Priority::Status::Stay;
+  return priority.status == Priority::Status::Stay;
 }
 
 bool Constraint::IsBlocked() {
@@ -60,7 +69,7 @@ Variable* Constraint::GetSelectedMethodOut() {
 }
 
 bool Constraint::IsRequired() {
-  return priority.strength == 0;
+  return priority.strength == 0 && priority.status == Priority::Status::Regular;
 }
 
 bool Constraint::IsReversiblePathSource() {
@@ -80,11 +89,9 @@ bool Constraint::IsUnused() {
 };
 
 Method* Constraint::PotentialOutputsMinMethod(Variable* variable) {
-  NSPropertyModel::Priority min_priority = {
-      NSPropertyModel::Priority::Status::Regular,
-      NSPropertyModel::Priority::Strength{0}};
+  Priority min_priority = max_regular_priority;
   Method* min_priority_method = nullptr;
-  for (auto& method : methods) {
+  for (const auto& method : methods) {
     if (method->GetOut() != variable &&
         min_priority > method->GetOut()->priority) {
       min_priority = method->GetOut()->priority;
@@ -95,23 +102,20 @@ Method* Constraint::PotentialOutputsMinMethod(Variable* variable) {
   return min_priority_method;
 }
 
-Priority
-Constraint::PotentialOutputsMinPriority(NSPropertyModel::Variable* variable) {
+Priority Constraint::PotentialOutputsMinPriority(Variable* variable) {
   Method* method = PotentialOutputsMinMethod(variable);
   if (method == nullptr) {
-    return Priority{Priority{Priority::Status::Regular, Priority::Strength{0}}};
+    return max_regular_priority;
   } else {
     return method->GetOut()->priority;
   }
 }
 
 Method* Constraint::OutputMinPriorityMethod() {
-  NSPropertyModel::Priority min_priority = {
-      NSPropertyModel::Priority::Status::Regular,
-      NSPropertyModel::Priority::Strength{-1}};
+  Priority min_priority = max_regular_priority;
   Method* min_priority_method = nullptr;
-  for (auto& method : methods) {
-    if (min_priority > method->GetOut()->priority) {
+  for (const auto& method : methods) {
+    if (min_priority >= method->GetOut()->priority) {
       min_priority = method->GetOut()->priority;
       min_priority_method = method.get();
     }
@@ -148,21 +152,9 @@ void Constraint::MarkDisabled() {
 void Constraint::SetSelectedMethodNull() {
   selected_method = nullptr;
 }
-enum class State { Applied, Unused, Disabled };
 
-std::ostream& operator<<(std::ostream& out, const Constraint& constraint) {
-  switch (constraint.priority.status) {
-  case Priority::Status::Stay:
-    out << "Stay";
-    break;
-  case Priority::Status::Regular:
-    out << "Regular";
-  }
-
-  out << " with strength = " << constraint.priority.strength
-      << "; method count = " << constraint.methods.size() << " ; Now is ";
-
-  switch (constraint.state) {
+std::ostream& operator<<(std::ostream& out, const Constraint::State& state) {
+  switch (state) {
   case Constraint::State::Applied:
     out << "Applied";
     break;
@@ -171,32 +163,20 @@ std::ostream& operator<<(std::ostream& out, const Constraint& constraint) {
     break;
   case Constraint::State::Disabled:
     out << "Disabled";
-    break;
   }
 
-  out << ", selected_metod = " << constraint.selected_method << " ";
+  return out;
+}
+
+std::ostream& operator<<(std::ostream& out, const Constraint& constraint) {
+  out << constraint.priority << ". ";
+  out << constraint.state << ". ";
 
   if (constraint.selected_method) {
-    out << "determining Variable ";
-    switch (constraint.selected_method->GetOut()->type) {
-    case Variable::Type::Data:
-      out << "Data<"
-          << static_cast<int>(constraint.selected_method->GetOut()->index)
-          << ">";
-      break;
-    case Variable::Type::Value:
-      out << "Value<"
-          << static_cast<int>(constraint.selected_method->GetOut()->index)
-          << ">";
-      break;
-    case Variable::Type::Out:
-      out << "Out<"
-          << static_cast<int>(constraint.selected_method->GetOut()->index)
-          << ">";
-    }
+    out << "Selected_metod " << *constraint.selected_method << " ";
   }
-  std::cout << "\n";
 
+  out << "\n";
   return out;
 }
 

@@ -9,7 +9,6 @@
 namespace NSPropertyModel {
 using IndexType = Templates::IndexType;
 using StepType = Templates::StepType;
-// static constexpr int k_non_ = -1;
 
 struct Variable;
 
@@ -18,15 +17,24 @@ struct Method {
 
   Variable* GetOut();
 
+  const Variable* GetOut() const;
+
   std::function<void()> action;
 
   std::vector<Variable*> in;
   std::vector<Variable*> out;
 };
 
-struct Constraint {
-  Constraint(Priority priority = Priority{Priority::Status::Regular,
-                                          Priority::Strength{0}});
+std::ostream& operator<<(std::ostream& out, const Method& method);
+
+class Constraint {
+  static constexpr Priority min_stay_priority = {Priority::Status::Stay,
+                                                 Priority::Strength{0}};
+  static constexpr Priority max_regular_priority = {Priority::Status::Regular,
+                                                    Priority::Strength{0}};
+
+public:
+  Constraint(Priority priority = max_regular_priority);
 
   Constraint(Priority priority, std::vector<std::unique_ptr<Method>> methods);
 
@@ -65,15 +73,17 @@ struct Constraint {
   void MarkUnused();
   void MarkDisabled();
 
+  // private:
   enum class State { Applied, Unused, Disabled };
+
   State state = State::Disabled;
   Method* selected_method = nullptr;
-  NSPropertyModel::Priority priority;
+  Priority priority;
   StepType last_execution = StepType{0};
   std::vector<std::unique_ptr<Method>> methods;
-  //    std::vector<Method*> methods;
-  //        std::vector<Method> methods;
 };
+
+std::ostream& operator<<(std::ostream& out, const Constraint::State& state);
 
 std::ostream& operator<<(std::ostream& out, const Constraint& constraint);
 } // namespace NSPropertyModel

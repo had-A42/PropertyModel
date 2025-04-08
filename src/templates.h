@@ -155,7 +155,7 @@ struct SizeHelper<TypeContainer<Args...>> {
 } // namespace detail
 
 template<typename ElementContainer>
-constexpr IndexType Size = detail::SizeHelper<ElementContainer>::value;
+static constexpr IndexType Size = detail::SizeHelper<ElementContainer>::value;
 
 // Ref<Data<1>> -> cсылка на первый элемент DataTuple
 template<typename T, typename DataTuple, typename ValueTuple, typename OutTuple>
