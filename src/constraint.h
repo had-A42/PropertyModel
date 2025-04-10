@@ -7,8 +7,6 @@
 #include "templates.h"
 
 namespace NSPropertyModel {
-using IndexType = Templates::IndexType;
-using StepType = Templates::StepType;
 
 struct Variable;
 
@@ -16,8 +14,9 @@ struct Method {
   void Execute();
 
   Variable* GetOut();
-
   const Variable* GetOut() const;
+
+  Priority GetOutPriority();
 
   std::function<void()> action;
 
@@ -28,6 +27,8 @@ struct Method {
 std::ostream& operator<<(std::ostream& out, const Method& method);
 
 class Constraint {
+    using IndexType = Templates::IndexType;
+    using StepType = Templates::StepType;
   static constexpr Priority min_stay_priority = {Priority::Status::Stay,
                                                  Priority::Strength{0}};
   static constexpr Priority max_regular_priority = {Priority::Status::Regular,
@@ -37,9 +38,6 @@ public:
   Constraint(Priority priority = max_regular_priority);
 
   Constraint(Priority priority, std::vector<std::unique_ptr<Method>> methods);
-
-  auto operator[](IndexType index);
-  const auto operator[](IndexType index) const;
 
   void PushBackMethod(std::unique_ptr<Method> method);
 

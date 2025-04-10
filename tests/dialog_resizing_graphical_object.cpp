@@ -31,7 +31,7 @@ void Query(PropertyModel& pm) {
   std::cout
       << "_____________________________________________________________\n";
   std::string query;
-  IndexType index;
+  int index;
   std::cout << "Enter command (quit / update - update value / add - add "
                "constraint / remove - remove constraint / print - print system "
                "state): ";
@@ -41,7 +41,7 @@ void Query(PropertyModel& pm) {
     exit(0);
   } else if (query == "update") {
     char meta_marker;
-    IndexType index;
+    int index;
     std::cout << "Enter meta marker and index (D/V index): ";
     std::cin >> meta_marker;
 

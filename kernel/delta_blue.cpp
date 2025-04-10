@@ -9,6 +9,11 @@ void DeltaBlue::Initialize(Constraints& constraints, Variables& variables,
   c_graph.InitConstraints(constraints);
   c_graph.InitVariables(variables);
 
+  /* добавление ограничений разделено на два цикла для
+   * последовательного удовлетворения сначала stay-ограничений, затем
+   * всех осатвшихся. Это необходимо, так как для добавления Regular-ограничений
+   * требуется инвариант корректного текущего графа решения
+   */
   for (const auto& constraint : c_graph.GetAllConstraints()) {
     if (constraint->IsStay()) {
       constraint->SelectMethodByIndex(0);
@@ -29,6 +34,7 @@ void DeltaBlue::AddConstraint(ConstraintGraph& c_graph,
                               Constraint* new_constraint,
                               StepType& propagation_counter) {
   assert(new_constraint != nullptr);
+
   if (!new_constraint->IsDisable()) {
     std::cout << "Constraint already added\n";
     return;
@@ -48,6 +54,7 @@ void DeltaBlue::AddConstraint(ConstraintGraph& c_graph,
 
   output_candidate->determined_by = new_constraint;
   new_constraint->selected_method = method_candidate;
+
   assert(method_candidate->GetOut() == output_candidate);
   new_constraint->MarkApplied();
 
@@ -63,6 +70,7 @@ void DeltaBlue::AddConstraintByIndex(ConstraintGraph& c_graph, IndexType index,
 void DeltaBlue::RemoveConstraint(ConstraintGraph& c_graph,
                                  Constraint* constraint_to_remove,
                                  StepType& propagation_counter) {
+  assert(constraint_to_remove != nullptr);
   if (constraint_to_remove->IsStay()) {
     std::cout << "Not allowed to delete Stay!!!\n";
     return;
@@ -102,6 +110,7 @@ void DeltaBlue::RemoveConstraintByIndex(ConstraintGraph& c_graph,
 void DeltaBlue::UpdateStayPriority(ConstraintGraph& c_graph, Constraint* stay,
                                    Priority priority,
                                    StepType& propagation_counter) {
+  assert(stay != nullptr);
   assert(stay->IsStay());
   assert(priority.status == Priority::Status::Stay);
 
@@ -118,6 +127,7 @@ void DeltaBlue::UpdateStayPriority(ConstraintGraph& c_graph, Constraint* stay,
 
 void DeltaBlue::UpdatingPropagation(Variable* variable,
                                     StepType& propagation_counter) {
+  assert(variable != nullptr);
   ++propagation_counter;
   UpdatingPropagationImpl(variable, propagation_counter);
   ++propagation_counter;
@@ -125,13 +135,18 @@ void DeltaBlue::UpdatingPropagation(Variable* variable,
 
 void DeltaBlue::UpdatingPropagationImpl(Variable* variable,
                                         StepType& propagation_counter) {
+  assert(variable != nullptr);
+
   variable->UpdatePriority();
   variable->UpdateStep(propagation_counter);
+
   for (const auto& constraint : variable->involved_as_potential_output) {
     if (!constraint->IsApplied() ||
         constraint->GetSelectedMethodOut() == variable)
       continue;
+
     Variable* next_variable = constraint->GetSelectedMethodOut();
+
     if (next_variable->IsProcessing(propagation_counter)) {
       std::cout << "ALARM: Cycle!!! Property Model is dying!!!\n";
       exit(1); // TODO
@@ -140,10 +155,12 @@ void DeltaBlue::UpdatingPropagationImpl(Variable* variable,
       variable->UpdateStep(propagation_counter + 1);
     }
   }
+
   variable->UpdateStep(propagation_counter + 1);
 }
 
 void DeltaBlue::ReversePath(Variable* variable) {
+  assert(variable != nullptr);
   Constraint* current_constraint = variable->determined_by;
   if (current_constraint == nullptr) {
     return;

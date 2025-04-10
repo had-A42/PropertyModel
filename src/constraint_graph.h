@@ -7,6 +7,9 @@
 
 namespace NSPropertyModel {
 class ConstraintGraph {
+    using IndexType = Templates::IndexType;
+    using StepType = Templates::StepType;
+
   using Constraints = std::vector<std::unique_ptr<Constraint>>;
   using Variables = std::vector<std::unique_ptr<Variable>>;
 

@@ -14,6 +14,10 @@ const Variable* Method::GetOut() const {
   return out[0];
 }
 
+Priority Method::GetOutPriority() {
+    return GetOut()->priority;
+}
+
 std::ostream& operator<<(std::ostream& out, const Method& method) {
   std::cout << "has out " << *method.GetOut();
   return out;
@@ -44,14 +48,6 @@ bool Constraint::IsProcessing(StepType current_step) {
 void Constraint::Execute() {
   assert(selected_method != nullptr);
   selected_method->Execute();
-}
-
-auto Constraint::operator[](IndexType index) {
-  return methods[index].get();
-}
-
-const auto Constraint::operator[](IndexType index) const {
-  return methods[index].get();
 }
 
 bool Constraint::IsStay() {
@@ -93,8 +89,8 @@ Method* Constraint::PotentialOutputsMinMethod(Variable* variable) {
   Method* min_priority_method = nullptr;
   for (const auto& method : methods) {
     if (method->GetOut() != variable &&
-        min_priority > method->GetOut()->priority) {
-      min_priority = method->GetOut()->priority;
+        min_priority > method->GetOutPriority()) {
+      min_priority = method->GetOutPriority();
       min_priority_method = method.get();
     }
   }
@@ -107,7 +103,7 @@ Priority Constraint::PotentialOutputsMinPriority(Variable* variable) {
   if (method == nullptr) {
     return max_regular_priority;
   } else {
-    return method->GetOut()->priority;
+    return method->GetOutPriority();
   }
 }
 
@@ -115,8 +111,8 @@ Method* Constraint::OutputMinPriorityMethod() {
   Priority min_priority = max_regular_priority;
   Method* min_priority_method = nullptr;
   for (const auto& method : methods) {
-    if (min_priority >= method->GetOut()->priority) {
-      min_priority = method->GetOut()->priority;
+    if (min_priority >= method->GetOutPriority()) {
+      min_priority = method->GetOutPriority();
       min_priority_method = method.get();
     }
   }
@@ -179,5 +175,4 @@ std::ostream& operator<<(std::ostream& out, const Constraint& constraint) {
   out << "\n";
   return out;
 }
-
 } // namespace NSPropertyModel

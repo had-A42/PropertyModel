@@ -43,6 +43,9 @@ class Builder;
 template<typename... DataArgs, typename... ValueArgs, typename... OutArgs>
 class PropertyModelImpl<Data<DataArgs...>, Value<ValueArgs...>,
                         Out<OutArgs...>> {
+    using IndexType = Templates::IndexType;
+    using StepType = Templates::StepType;
+
   using Action = std::function<void()>;
   using Constraints = std::vector<std::unique_ptr<Constraint>>;
   using Variables = std::vector<std::unique_ptr<Variable>>;
@@ -113,20 +116,12 @@ public:
 
   PropertyModelImpl() = delete;
 
-  template<class>
-  struct TD;
-
-  template<class...>
-  struct List {};
-
   PropertyModelImpl(SpecifyArithmeic<DataArgs>... data,
                     SpecifyArithmeic<ValueArgs>... value,
                     SpecifyArithmeic<OutArgs>... out)
       : data_(std::make_tuple(std::move(data)...)),
         value_(std::make_tuple(std::move(value)...)),
         out_(std::make_tuple(std::move(out)...)) {
-
-    //  TD<List<SpecifyArithmeic<DataArgs>...>> x;
 
     Templates::For<0, data_size_, 1>::template Do<InitDataVariableImpl>(this);
     Templates::For<0, value_size_, 1>::template Do<InitValueVariableImpl>(this);

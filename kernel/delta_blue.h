@@ -13,6 +13,9 @@
 
 namespace NSPropertyModel {
 class DeltaBlue {
+    using IndexType = Templates::IndexType;
+    using StepType = Templates::StepType;
+
   using Constraints = std::vector<std::unique_ptr<Constraint>>;
   using Variables = std::vector<std::unique_ptr<Variable>>;
 
@@ -35,17 +38,17 @@ public:
   static void RemoveConstraintByIndex(ConstraintGraph& c_graph, IndexType index,
                                       StepType& propagation_counter);
 
-    static void UpdateStayPriority(ConstraintGraph& c_graph, Constraint* stay,
-                                   Priority priority,
-                                   StepType& propagation_counter);
+  static void UpdateStayPriority(ConstraintGraph& c_graph, Constraint* stay,
+                                 Priority priority,
+                                 StepType& propagation_counter);
 
 private:
-    static void UpdatingPropagation(Variable* variable,
-                                    StepType& propagation_counter);
+  static void UpdatingPropagation(Variable* variable,
+                                  StepType& propagation_counter);
 
-    static void UpdatingPropagationImpl(Variable* variable,
-                                        StepType& propagation_counter);
+  static void UpdatingPropagationImpl(Variable* variable,
+                                      StepType& propagation_counter);
 
-    static void ReversePath(Variable* variable);
+  static void ReversePath(Variable* variable);
 };
 } // namespace NSPropertyModel

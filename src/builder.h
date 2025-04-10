@@ -5,6 +5,9 @@
 namespace NSPropertyModel::detail {
 template<typename... DataArgs, typename... ValueArgs, typename... OutArgs>
 class Builder<Data<DataArgs...>, Value<ValueArgs...>, Out<OutArgs...>> {
+    using IndexType = Templates::IndexType;
+    using StepType = Templates::StepType;
+    
   using DataTypes = Data<DataArgs...>;
   using ValueTypes = Value<ValueArgs...>;
   using OutTypes = Out<OutArgs...>;
