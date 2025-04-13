@@ -1,31 +1,26 @@
 #include "delta_blue.h"
 
 namespace NSPropertyModel {
-void DeltaBlue::Initialize(Constraints& constraints, Variables& variables,
-                           ConstraintGraph& c_graph,
-                           StepType& propagation_counter) {
-  c_graph.Clear();
-
-  c_graph.InitConstraints(constraints);
-  c_graph.InitVariables(variables);
+void DeltaBlue::CreateInitialSolution(ConstraintGraph& c_graph,
+                                      StepType& propagation_counter) {
 
   /* добавление ограничений разделено на два цикла для
    * последовательного удовлетворения сначала stay-ограничений, затем
    * всех осатвшихся. Это необходимо, так как для добавления Regular-ограничений
    * требуется инвариант корректного текущего графа решения
    */
-  for (const auto& constraint : c_graph.GetAllConstraints()) {
+  for (const auto& constraint : c_graph.AllConstraints()) {
     if (constraint->IsStay()) {
       constraint->SelectMethodByIndex(0);
       constraint->MarkApplied();
-      constraint->GetSelectedMethodOut()->SetDeterminedBy(constraint);
+      constraint->GetSelectedMethodOut()->SetDeterminedBy(constraint.get());
       constraint->GetSelectedMethodOut()->UpdatePriority();
     }
   }
 
-  for (const auto& constraint : c_graph.GetAllConstraints()) {
+  for (const auto& constraint : c_graph.AllConstraints()) {
     if (!constraint->IsStay()) {
-      AddConstraint(c_graph, constraint, propagation_counter);
+      AddConstraint(c_graph, constraint.get(), propagation_counter);
     }
   }
 }
@@ -63,7 +58,7 @@ void DeltaBlue::AddConstraint(ConstraintGraph& c_graph,
 
 void DeltaBlue::AddConstraintByIndex(ConstraintGraph& c_graph, IndexType index,
                                      StepType& propagation_counter) {
-  Constraint* new_constraint = c_graph.GetByIndex(index);
+  Constraint* new_constraint = c_graph.ConstraintByIndex(index);
   AddConstraint(c_graph, new_constraint, propagation_counter);
 }
 
@@ -103,7 +98,7 @@ void DeltaBlue::RemoveConstraint(ConstraintGraph& c_graph,
 void DeltaBlue::RemoveConstraintByIndex(ConstraintGraph& c_graph,
                                         IndexType index,
                                         StepType& propagation_counter) {
-  Constraint* constraint_to_remove = c_graph.GetByIndex(index);
+  Constraint* constraint_to_remove = c_graph.ConstraintByIndex(index);
   RemoveConstraint(c_graph, constraint_to_remove, propagation_counter);
 }
 

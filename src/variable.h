@@ -33,7 +33,7 @@ struct Variable {
   StepType last_propagation = StepType{0};
   Priority priority;
   Constraint* determined_by = nullptr;
-  Constraint* stay;
+  Constraint* stay = nullptr;
   ConstraintPtrs involved_as_potential_output;
 };
 

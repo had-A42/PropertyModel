@@ -7,42 +7,48 @@
 
 namespace NSPropertyModel {
 class ConstraintGraph {
-    using IndexType = Templates::IndexType;
-    using StepType = Templates::StepType;
+  using IndexType = Templates::IndexType;
+  using StepType = Templates::StepType;
 
-  using Constraints = std::vector<std::unique_ptr<Constraint>>;
-  using Variables = std::vector<std::unique_ptr<Variable>>;
+  using ConstraintUPtrs = std::vector<std::unique_ptr<Constraint>>;
+  using VariableUPtrs = std::vector<std::unique_ptr<Variable>>;
 
   using ConstraintPtrs = std::vector<Constraint*>;
-  using VariablesPtrs = std::vector<Variable*>;
-
   using SolutionGraphOnIndices = std::vector<std::vector<Constraint*>>;
 
 public:
   ConstraintGraph() = default;
 
-  ConstraintGraph(Constraints& constraints, Variables& variables);
+  void AddConstraint(Constraint&& constraint);
+  void AddVariable(Variable variable);
 
-  void InitConstraints(Constraints& constraints);
-  void InitVariables(Variables& variables);
-
-  //  void AddConstraint(Constraint* constraint);
-
-  void Clear();
-
-  Constraint* GetByIndex(IndexType index);
   Constraint* FindLowestPriorityBlockedConstraint();
-
-  ConstraintPtrs& GetAllConstraints();
-
   void ExecutePlan(StepType& propagation_counter);
+
+  // мб сделать приватными
+  ConstraintUPtrs& AllConstraints();
+  const ConstraintUPtrs& AllConstraints() const;
+
+  Constraint* ConstraintByIndex(IndexType index);
+  const Constraint* ConstraintByIndex(IndexType index) const;
+
+  VariableUPtrs& AllVariables();
+  const VariableUPtrs& AllVariables() const;
+
+  Variable* VariableByIndex(IndexType index);
+  const Variable* VariableByIndex(IndexType index) const;
+
+  IndexType ConstraintsSize();
+  IndexType VariablesSize();
+
+  void AttachLastAsStay(IndexType index);
 
 private:
   void FormExecutionPlan(SolutionGraphOnIndices& solution,
-                         ConstraintPtrs& execution_plan,
-                         StepType& propagation_counter, Constraint* constraint);
+                         ConstraintPtrs& execution_plan, Constraint* constraint,
+                         StepType& propagation_counter);
 
-  ConstraintPtrs constraints_;
-  VariablesPtrs variables_;
+  ConstraintUPtrs constraints_;
+  VariableUPtrs variables_;
 };
 } // namespace NSPropertyModel

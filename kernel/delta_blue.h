@@ -13,16 +13,12 @@
 
 namespace NSPropertyModel {
 class DeltaBlue {
-    using IndexType = Templates::IndexType;
-    using StepType = Templates::StepType;
-
-  using Constraints = std::vector<std::unique_ptr<Constraint>>;
-  using Variables = std::vector<std::unique_ptr<Variable>>;
+  using IndexType = Templates::IndexType;
+  using StepType = Templates::StepType;
 
 public:
-  static void Initialize(Constraints& constraints, Variables& variables,
-                         ConstraintGraph& c_graph,
-                         StepType& propagation_counter);
+  static void CreateInitialSolution(ConstraintGraph& c_graph,
+                                    StepType& propagation_counter);
 
   static void AddConstraint(ConstraintGraph& c_graph,
                             Constraint* new_constraint,

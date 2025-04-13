@@ -11,24 +11,27 @@ namespace NSPropertyModel {
 struct Variable;
 
 struct Method {
+  using VariablePtrs = std::vector<Variable*>;
+
   void Execute();
 
   Variable* GetOut();
   const Variable* GetOut() const;
 
   Priority GetOutPriority();
+  VariablePtrs& GetInVariables();
 
   std::function<void()> action;
 
-  std::vector<Variable*> in;
-  std::vector<Variable*> out;
+  VariablePtrs in;
+  VariablePtrs out;
 };
 
 std::ostream& operator<<(std::ostream& out, const Method& method);
 
 class Constraint {
-    using IndexType = Templates::IndexType;
-    using StepType = Templates::StepType;
+  using IndexType = Templates::IndexType;
+  using StepType = Templates::StepType;
   static constexpr Priority min_stay_priority = {Priority::Status::Stay,
                                                  Priority::Strength{0}};
   static constexpr Priority max_regular_priority = {Priority::Status::Regular,
@@ -82,6 +85,5 @@ public:
 };
 
 std::ostream& operator<<(std::ostream& out, const Constraint::State& state);
-
 std::ostream& operator<<(std::ostream& out, const Constraint& constraint);
 } // namespace NSPropertyModel

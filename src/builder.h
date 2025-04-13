@@ -5,9 +5,9 @@
 namespace NSPropertyModel::detail {
 template<typename... DataArgs, typename... ValueArgs, typename... OutArgs>
 class Builder<Data<DataArgs...>, Value<ValueArgs...>, Out<OutArgs...>> {
-    using IndexType = Templates::IndexType;
-    using StepType = Templates::StepType;
-    
+  using IndexType = Templates::IndexType;
+  using StepType = Templates::StepType;
+
   using DataTypes = Data<DataArgs...>;
   using ValueTypes = Value<ValueArgs...>;
   using OutTypes = Out<OutArgs...>;
@@ -51,8 +51,8 @@ public:
     AddNewConstraint(Priority::Strength{0});
     AddAllStay();
     property_model_->SetCurrentStayPriority(current_stay_priority_);
-    property_model_->СollectPotentialOutputs();
-    property_model_->InitConstraintGraph();
+    property_model_->CollectPotentialOutputs();
+    property_model_->CreateInitialSolution();
     return std::move(property_model_);
   }
 
@@ -83,7 +83,7 @@ private:
 
       // очищаем буффер new_constraint чтобы привязать stay к переменной
       builder->AddNewConstraint(Priority::Strength{0});
-      builder->property_model_->template AttachStay<MetaData>();
+      builder->property_model_->template AttachLastAsStay<MetaData>();
       ++builder->current_stay_priority_;
     }
   };

@@ -15,7 +15,6 @@ struct Priority {
 
   Status status;
   Strength strength;
-
 };
 
 bool operator<(const Priority& lhs, const Priority& rhs);

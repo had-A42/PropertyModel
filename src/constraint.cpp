@@ -15,7 +15,10 @@ const Variable* Method::GetOut() const {
 }
 
 Priority Method::GetOutPriority() {
-    return GetOut()->priority;
+  return GetOut()->priority;
+}
+Method::VariablePtrs& Method::GetInVariables() {
+  return in;
 }
 
 std::ostream& operator<<(std::ostream& out, const Method& method) {

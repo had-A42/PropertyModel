@@ -43,8 +43,8 @@ class Builder;
 template<typename... DataArgs, typename... ValueArgs, typename... OutArgs>
 class PropertyModelImpl<Data<DataArgs...>, Value<ValueArgs...>,
                         Out<OutArgs...>> {
-    using IndexType = Templates::IndexType;
-    using StepType = Templates::StepType;
+  using IndexType = Templates::IndexType;
+  using StepType = Templates::StepType;
 
   using Action = std::function<void()>;
   using Constraints = std::vector<std::unique_ptr<Constraint>>;
@@ -90,10 +90,24 @@ class PropertyModelImpl<Data<DataArgs...>, Value<ValueArgs...>,
   friend Builder;
 
 public:
-  void Print() {
-    std::cout << "Variable size: " << variables_.size() << "\n";
+  PropertyModelImpl() = delete;
 
-    std::cout << "Constraint count: " << constraints_.size() << "\n";
+  PropertyModelImpl(SpecifyArithmeic<DataArgs>... data,
+                    SpecifyArithmeic<ValueArgs>... value,
+                    SpecifyArithmeic<OutArgs>... out)
+      : data_(std::make_tuple(std::move(data)...)),
+        value_(std::make_tuple(std::move(value)...)),
+        out_(std::make_tuple(std::move(out)...)) {
+
+    Templates::For<0, data_size_, 1>::template Do<InitDataVariableImpl>(this);
+    Templates::For<0, value_size_, 1>::template Do<InitValueVariableImpl>(this);
+    Templates::For<0, out_size_, 1>::template Do<InitOutVariableImpl>(this);
+  };
+
+  void Print() {
+    std::cout << "Variable size: " << c_graph_.VariablesSize() << "\n";
+
+    std::cout << "Constraint count: " << c_graph_.ConstraintsSize() << "\n";
     std::cout << "Variables: " << "\n";
     std::cout << "\tData: ";
     std::apply([](auto&&... args) { ((std::cout << args << " "), ...); },
@@ -109,24 +123,10 @@ public:
 
     std::cout << "Constraints: " << "\n";
 
-    for (int i = 0; i < constraints_.size(); ++i) {
-      std::cout << "\t" << i << " " << *constraints_[i].get();
+    for (int i = 0; i < c_graph_.ConstraintsSize(); ++i) {
+      std::cout << "\t" << i << " " << *c_graph_.AllConstraints()[i].get();
     }
   }
-
-  PropertyModelImpl() = delete;
-
-  PropertyModelImpl(SpecifyArithmeic<DataArgs>... data,
-                    SpecifyArithmeic<ValueArgs>... value,
-                    SpecifyArithmeic<OutArgs>... out)
-      : data_(std::make_tuple(std::move(data)...)),
-        value_(std::make_tuple(std::move(value)...)),
-        out_(std::make_tuple(std::move(out)...)) {
-
-    Templates::For<0, data_size_, 1>::template Do<InitDataVariableImpl>(this);
-    Templates::For<0, value_size_, 1>::template Do<InitValueVariableImpl>(this);
-    Templates::For<0, out_size_, 1>::template Do<InitOutVariableImpl>(this);
-  };
 
   void AddConstraint(IndexType constraint_index) {
     DeltaBlue::AddConstraintByIndex(c_graph_, constraint_index,
@@ -144,7 +144,7 @@ public:
   void Set(SpecializedTypeof<MetaData> value) {
     Refto<MetaData>::Get(data_, value_, out_) = std::move(value);
 
-    Constraint* stay = variables_[IndexGetter<MetaData>]->stay;
+    Constraint* stay = c_graph_.VariableByIndex(IndexGetter<MetaData>)->stay;
 
     DeltaBlue::UpdateStayPriority(c_graph_, stay, current_stay_priority_,
                                   propagation_counter_);
@@ -159,9 +159,8 @@ private:
     Refto<MetaData>::Get(data_, value_, out_) = std::move(value);
   }
 
-  void InitConstraintGraph() {
-    DeltaBlue::Initialize(constraints_, variables_, c_graph_,
-                          propagation_counter_);
+  void CreateInitialSolution() {
+    DeltaBlue::CreateInitialSolution(c_graph_, propagation_counter_);
   }
 
   void SetCurrentStayPriority(Priority priority) {
@@ -172,24 +171,24 @@ private:
   template<IndexType Index>
   struct InitDataVariableImpl {
     void operator()(PropertyModelImpl* impl) {
-      impl->variables_.push_back(std::make_unique<Variable>(
-          Variable::Type::Data, Index, IndexGetter<Templates::Data<Index>>));
+      impl->c_graph_.AddVariable(
+          {Variable::Type::Data, Index, IndexGetter<Templates::Data<Index>>});
     }
   };
 
   template<IndexType Index>
   struct InitValueVariableImpl {
     void operator()(PropertyModelImpl* impl) {
-      impl->variables_.push_back(std::make_unique<Variable>(
-          Variable::Type::Value, Index, IndexGetter<Templates::Value<Index>>));
+      impl->c_graph_.AddVariable(
+          {Variable::Type::Value, Index, IndexGetter<Templates::Value<Index>>});
     }
   };
 
   template<IndexType Index>
   struct InitOutVariableImpl {
     void operator()(PropertyModelImpl* impl) {
-      impl->variables_.push_back(std::make_unique<Variable>(
-          Variable::Type::Out, Index, IndexGetter<Templates::Out<Index>>));
+      impl->c_graph_.AddVariable(
+          {Variable::Type::Out, Index, IndexGetter<Templates::Out<Index>>});
     }
   };
 
@@ -201,25 +200,24 @@ private:
     };
 
     Method method = {.action = action};
-    method.out.push_back(variables_[IndexGetter<Output>].get());
-    (method.in.push_back(variables_[IndexGetter<Inputs>].get()), ...);
+    method.out.push_back(c_graph_.VariableByIndex(IndexGetter<Output>));
+    (method.in.push_back(c_graph_.VariableByIndex(IndexGetter<Inputs>)), ...);
 
     return std::make_unique<Method>(std::move(method));
   }
 
   template<typename MetaData>
-  void AttachStay() {
+  void AttachLastAsStay() {
     IndexType index = IndexGetter<MetaData>;
-    variables_[index]->stay = constraints_.back().get();
+    c_graph_.AttachLastAsStay(index);
   }
 
-  void ReceiveConstraint(Constraint&& c) {
-    constraints_.push_back(std::make_unique<Constraint>(std::move(c)));
-    Constraint* new_constraint = constraints_.back().get();
+  void ReceiveConstraint(Constraint&& constraint) {
+    c_graph_.AddConstraint(std::move(constraint));
   }
 
-  void СollectPotentialOutputs() {
-    for (const auto& constraint : constraints_) {
+  void CollectPotentialOutputs() {
+    for (const auto& constraint : c_graph_.AllConstraints()) {
       for (const auto& method : constraint->methods) {
         Variable* output = method->GetOut();
         output->involved_as_potential_output.push_back(constraint.get());
@@ -232,13 +230,9 @@ private:
     return &Refto<MetaData>::Get(data_, value_, out_);
   }
 
-  std::tuple<DataArgs*...> data_refs_;
   DataTuple data_;
   ValueTuple value_;
   OutTuple out_;
-
-  Variables variables_;
-  Constraints constraints_;
 
   Priority current_stay_priority_ = min_stay_priority;
   ConstraintGraph c_graph_;
