@@ -6,75 +6,43 @@
 #include "priority.h"
 #include "templates.h"
 
-namespace NSPropertyModel {
+namespace NSPropertyModel::detail {
 
 struct Variable;
 
 struct Method {
   using VariablePtrs = std::vector<Variable*>;
 
-  void Execute();
-
-  Variable* GetOut();
-  const Variable* GetOut() const;
-
-  Priority GetOutPriority();
-  VariablePtrs& GetInVariables();
-
   std::function<void()> action;
-
   VariablePtrs in;
   VariablePtrs out;
 };
 
+void ExecuteMethod(const Method* method);
+
+Variable* GetOut(Method* method);
+
+const Variable* GetOut(const Method* method);
+
+const Priority GetOutPriority(const Method* method);
+
+const Method::VariablePtrs& GetInVariables(const Method* method);
+
 std::ostream& operator<<(std::ostream& out, const Method& method);
 
-class Constraint {
-  using IndexType = Templates::IndexType;
-  using StepType = Templates::StepType;
+struct Constraint {
   static constexpr Priority min_stay_priority = {Priority::Status::Stay,
                                                  Priority::Strength{0}};
   static constexpr Priority max_regular_priority = {Priority::Status::Regular,
                                                     Priority::Strength{0}};
 
-public:
+  using IndexType = Templates::IndexType;
+  using StepType = Templates::StepType;
+
   Constraint(Priority priority = max_regular_priority);
 
   Constraint(Priority priority, std::vector<std::unique_ptr<Method>> methods);
 
-  void PushBackMethod(std::unique_ptr<Method> method);
-
-  void UpdateStep(StepType propagation_index);
-
-  bool IsExecutedInCurrentStep(StepType current_step);
-  bool IsProcessing(StepType current_step);
-
-  void Execute();
-
-  Variable* GetSelectedMethodOut();
-  void SetSelectedMethodNull();
-  void SelectMethod(Method* constraint);
-  void SelectMethodByIndex(IndexType index);
-
-  bool IsStay();
-  bool IsBlocked();
-  bool IsRequired();
-  bool IsReversiblePathSource();
-
-  bool IsApplied();
-  bool IsDisable();
-  bool IsUnused();
-
-  Method* PotentialOutputsMinMethod(Variable* variable);
-  Priority PotentialOutputsMinPriority(Variable* variable);
-  Method* OutputMinPriorityMethod();
-  Variable* OutputMinPriorityVariable();
-
-  void MarkApplied();
-  void MarkUnused();
-  void MarkDisabled();
-
-  // private:
   enum class State { Applied, Unused, Disabled };
 
   State state = State::Disabled;
@@ -86,4 +54,41 @@ public:
 
 std::ostream& operator<<(std::ostream& out, const Constraint::State& state);
 std::ostream& operator<<(std::ostream& out, const Constraint& constraint);
-} // namespace NSPropertyModel
+
+void PushBackMethod(Constraint* constraint, std::unique_ptr<Method> method);
+
+void UpdateStep(Constraint* constraint, Constraint::StepType propagation_index);
+
+bool IsExecutedInCurrentStep(const Constraint* constraint,
+                             Constraint::StepType current_step);
+bool IsProcessing(const Constraint* constraint,
+                  Constraint::StepType current_step);
+
+void ExecuteConstraint(const Constraint* constraint);
+
+Variable* GetSelectedMethodOut(const Constraint* constraint);
+
+void SetSelectedMethodNull(Constraint* constraint);
+void SelectMethod(Constraint* constraint, Method* method);
+void SelectMethodByIndex(Constraint* constraint, Constraint::IndexType index);
+
+bool IsStay(const Constraint* constraint);
+bool IsBlocked(const Constraint* constraint);
+bool IsRequired(const Constraint* constraint);
+bool IsReversiblePathSource(const Constraint* constraint);
+
+bool IsApplied(const Constraint* constraint);
+bool IsDisable(const Constraint* constraint);
+bool IsUnused(const Constraint* constraint);
+
+Method* PotentialOutputsMinMethod(const Constraint* constraint,
+                                  const Variable* variable);
+Priority PotentialOutputsMinPriority(const Constraint* constraint,
+                                     const Variable* variable);
+Method* OutputMinPriorityMethod(const Constraint* constraint);
+Variable* OutputMinPriorityVariable(const Constraint* constraint);
+
+void MarkApplied(Constraint* constraint);
+void MarkUnused(Constraint* constraint);
+void MarkDisabled(Constraint* constraint);
+} // namespace NSPropertyModel::detail

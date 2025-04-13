@@ -10,6 +10,10 @@ class ConstraintGraph {
   using IndexType = Templates::IndexType;
   using StepType = Templates::StepType;
 
+  using Variable = detail::Variable;
+  using Method = detail::Method;
+  using Constraint = detail::Constraint;
+
   using ConstraintUPtrs = std::vector<std::unique_ptr<Constraint>>;
   using VariableUPtrs = std::vector<std::unique_ptr<Variable>>;
 
@@ -20,23 +24,23 @@ public:
   ConstraintGraph() = default;
 
   void AddConstraint(Constraint&& constraint);
-  void AddVariable(Variable variable);
+  void AddVariable(Variable&& variable);
 
-  Constraint* FindLowestPriorityBlockedConstraint();
+  Constraint* FindLowestPriorityBlockedConstraint() const;
   void ExecutePlan(StepType& propagation_counter);
 
   // мб сделать приватными
   ConstraintUPtrs& AllConstraints();
-  const ConstraintUPtrs& AllConstraints() const;
+  [[nodiscard]] const ConstraintUPtrs& AllConstraints() const;
 
   Constraint* ConstraintByIndex(IndexType index);
-  const Constraint* ConstraintByIndex(IndexType index) const;
+  [[nodiscard]] const Constraint* ConstraintByIndex(IndexType index) const;
 
   VariableUPtrs& AllVariables();
-  const VariableUPtrs& AllVariables() const;
+  [[nodiscard]] const VariableUPtrs& AllVariables() const;
 
   Variable* VariableByIndex(IndexType index);
-  const Variable* VariableByIndex(IndexType index) const;
+  [[nodiscard]] const Variable* VariableByIndex(IndexType index) const;
 
   IndexType ConstraintsSize();
   IndexType VariablesSize();

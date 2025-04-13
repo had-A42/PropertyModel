@@ -1,39 +1,55 @@
 #include "variable.h"
 #include "constraint.h"
 
-namespace NSPropertyModel {
+namespace NSPropertyModel::detail {
 
 Variable::Variable(Type type, IndexType index, IndexType global_index)
     : type(type), index(index), global_index(global_index),
       determined_by(nullptr) {};
 
-void Variable::UpdatePriority() {
-  priority = std::min({determined_by->priority,
-                       determined_by->PotentialOutputsMinPriority(this)});
+void UpdatePriority(Variable* variable) {
+    assert(variable != nullptr);
+  variable->priority = std::min(
+      {variable->determined_by->priority,
+       PotentialOutputsMinPriority(variable->determined_by, variable)});
+
 }
 
-void Variable::UpdateStep(StepType propagation_index) {
-  last_propagation = propagation_index;
+void UpdateStep(Variable* variable, Variable::StepType propagation_index) {
+    assert(variable != nullptr);
+  variable->last_propagation = propagation_index;
 }
 
-void Variable::SetDeterminedBy(Constraint* constraint) {
-  determined_by = constraint;
+void SetDeterminedBy(Variable* variable, Constraint* constraint) {
+    assert(variable != nullptr);
+    assert(constraint != nullptr);
+  variable->determined_by = constraint;
 }
 
-void Variable::SetDeterminedByNull() {
-  determined_by = nullptr;
+void SetDeterminedByNull(Variable* variable) {
+    assert(variable != nullptr);
+  variable->determined_by = nullptr;
 }
 
-Constraint* Variable::GetStay() {
-  return stay;
+Constraint* GetStay(Variable* variable) {
+    assert(variable != nullptr);
+  return variable->stay;
 }
 
-bool Variable::IsUpdatedInCurrentStep(StepType current_step) {
-  return current_step + 1 == last_propagation;
+const Constraint* GetStay(const Variable* variable) {
+    assert(variable != nullptr);
+  return variable->stay;
 }
 
-bool Variable::IsProcessing(StepType current_step) {
-  return current_step == last_propagation;
+bool IsUpdatedInCurrentStep(const Variable* variable,
+                            Variable::StepType current_step) {
+    assert(variable != nullptr);
+  return current_step + 1 == variable->last_propagation;
+}
+
+bool IsProcessing(const Variable* variable, Variable::StepType current_step) {
+    assert(variable != nullptr);
+  return current_step == variable->last_propagation;
 }
 
 std::ostream& operator<<(std::ostream& out, const Variable::Type& type) {
@@ -55,4 +71,4 @@ std::ostream& operator<<(std::ostream& out, const Variable& variable) {
   std::cout << variable.type << "<" << variable.index << ">";
   return out;
 }
-} // namespace NSPropertyModel
+} // namespace NSPropertyModel::detail

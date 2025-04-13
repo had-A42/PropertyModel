@@ -41,10 +41,10 @@ public:
 
   template<typename Output, typename... Inputs>
   void AddMethod(Signature<Output, Inputs...> func) {
-    std::unique_ptr<Method> action =
+    std::unique_ptr<Method> method =
         property_model_->template BindMethod<Output, Inputs...>(
             std::move(func));
-    new_constraint_.PushBackMethod(std::move(action));
+    PushBackMethod(&new_constraint_, std::move(method));
   }
 
   PropertyModel ExtractPM() {

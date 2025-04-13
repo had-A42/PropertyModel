@@ -16,6 +16,10 @@ class DeltaBlue {
   using IndexType = Templates::IndexType;
   using StepType = Templates::StepType;
 
+  using Variable = detail::Variable;
+  using Method = detail::Method;
+  using Constraint = detail::Constraint;
+
 public:
   static void CreateInitialSolution(ConstraintGraph& c_graph,
                                     StepType& propagation_counter);

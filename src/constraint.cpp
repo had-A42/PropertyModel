@@ -1,28 +1,35 @@
 #include "constraint.h"
 #include "variable.h"
 
-namespace NSPropertyModel {
-void Method::Execute() {
-  action();
+namespace NSPropertyModel::detail {
+void ExecuteMethod(const Method* method) {
+  method->action();
 };
 
-Variable* Method::GetOut() {
-  return out[0];
+Variable* GetOut(Method* method) {
+  return method->out[0];
 }
 
-const Variable* Method::GetOut() const {
-  return out[0];
+const Variable* GetOut(const Method* method) {
+  assert(method != nullptr);
+  return method->out[0];
 }
 
-Priority Method::GetOutPriority() {
-  return GetOut()->priority;
+const Priority GetOutPriority(const Method* method) {
+    if (method == nullptr) {
+        return Constraint::max_regular_priority;
+    } else {
+        return GetOut(method)->priority;
+    }
 }
-Method::VariablePtrs& Method::GetInVariables() {
-  return in;
+
+const Method::VariablePtrs& GetInVariables(const Method* method) {
+  assert(method != nullptr);
+  return method->in;
 }
 
 std::ostream& operator<<(std::ostream& out, const Method& method) {
-  std::cout << "has out " << *method.GetOut();
+  std::cout << "has out " << *method.out[0];
   return out;
 }
 
@@ -32,68 +39,105 @@ Constraint::Constraint(Priority priority,
                        std::vector<std::unique_ptr<Method>> methods)
     : priority(priority), methods(std::move(methods)) {};
 
-void Constraint::PushBackMethod(std::unique_ptr<Method> method) {
-  methods.push_back(std::move(method));
+void PushBackMethod(Constraint* constraint, std::unique_ptr<Method> method) {
+  assert(constraint != nullptr);
+  constraint->methods.push_back(std::move(method));
 }
 
-void Constraint::UpdateStep(StepType propagation_index) {
-  last_execution = propagation_index;
+void UpdateStep(Constraint* constraint,
+                Constraint::StepType propagation_index) {
+  assert(constraint != nullptr);
+  constraint->last_execution = propagation_index;
 }
 
-bool Constraint::IsExecutedInCurrentStep(StepType current_step) {
-  return current_step + 1 == last_execution;
+bool IsExecutedInCurrentStep(const Constraint* constraint,
+                             Constraint::StepType current_step) {
+  assert(constraint != nullptr);
+  return current_step + 1 == constraint->last_execution;
 }
 
-bool Constraint::IsProcessing(StepType current_step) {
-  return current_step == last_execution;
+bool IsProcessing(const Constraint* constraint,
+                  Constraint::StepType current_step) {
+  assert(constraint != nullptr);
+  return current_step == constraint->last_execution;
 }
 
-void Constraint::Execute() {
-  assert(selected_method != nullptr);
-  selected_method->Execute();
+void ExecuteConstraint(const Constraint* constraint) {
+  assert(constraint != nullptr);
+  assert(constraint->selected_method != nullptr);
+  ExecuteMethod(constraint->selected_method);
 }
 
-bool Constraint::IsStay() {
-  return priority.status == Priority::Status::Stay;
+Variable* GetSelectedMethodOut(const Constraint* constraint) {
+  assert(constraint != nullptr);
+  assert(constraint->selected_method != nullptr);
+  return GetOut(constraint->selected_method);
 }
 
-bool Constraint::IsBlocked() {
-  return (state == State::Unused) &&
-         (OutputMinPriorityVariable()->priority < priority);
+void SetSelectedMethodNull(Constraint* constraint) {
+  assert(constraint != nullptr);
+  constraint->selected_method = nullptr;
 }
 
-Variable* Constraint::GetSelectedMethodOut() {
-  assert(selected_method != nullptr);
-  return selected_method->GetOut();
+void SelectMethod(Constraint* constraint, Method* method) {
+  assert(constraint != nullptr);
+  constraint->selected_method = method;
 }
 
-bool Constraint::IsRequired() {
-  return priority.strength == 0 && priority.status == Priority::Status::Regular;
+void SelectMethodByIndex(Constraint* constraint, Constraint::IndexType index) {
+  assert(constraint != nullptr);
+  constraint->selected_method = constraint->methods[index].get();
 }
 
-bool Constraint::IsReversiblePathSource() {
-  return priority == GetSelectedMethodOut()->priority;
+bool IsStay(const Constraint* constraint) {
+  assert(constraint != nullptr);
+  return constraint->priority.status == Priority::Status::Stay;
 }
 
-bool Constraint::IsApplied() {
-  return state == State::Applied;
+bool IsBlocked(const Constraint* constraint) {
+  assert(constraint != nullptr);
+  return (constraint->state == Constraint::State::Unused) &&
+         (OutputMinPriorityVariable(constraint)->priority <
+          constraint->priority);
+}
+
+bool IsRequired(const Constraint* constraint) {
+  assert(constraint != nullptr);
+  return constraint->priority.strength == 0 &&
+         constraint->priority.status == Priority::Status::Regular;
+}
+
+bool IsReversiblePathSource(const Constraint* constraint) {
+  assert(constraint != nullptr);
+  return constraint->priority == GetSelectedMethodOut(constraint)->priority;
+}
+
+bool IsApplied(const Constraint* constraint) {
+  assert(constraint != nullptr);
+  return constraint->state == Constraint::State::Applied;
 };
 
-bool Constraint::IsDisable() {
-  return state == State::Disabled;
+bool IsDisable(const Constraint* constraint) {
+  assert(constraint != nullptr);
+  return constraint->state == Constraint::State::Disabled;
 };
 
-bool Constraint::IsUnused() {
-  return state == State::Unused;
+bool IsUnused(const Constraint* constraint) {
+  assert(constraint != nullptr);
+  return constraint->state == Constraint::State::Unused;
 };
 
-Method* Constraint::PotentialOutputsMinMethod(Variable* variable) {
-  Priority min_priority = max_regular_priority;
+Method* PotentialOutputsMinMethod(const Constraint* constraint,
+                                  const Variable* variable) {
+  assert(constraint != nullptr);
+  assert(variable != nullptr);
+  Priority min_priority = Constraint::max_regular_priority;
   Method* min_priority_method = nullptr;
-  for (const auto& method : methods) {
-    if (method->GetOut() != variable &&
-        min_priority > method->GetOutPriority()) {
-      min_priority = method->GetOutPriority();
+  for (const auto& method : constraint->methods) {
+    Method* method_ptr = method.get();
+    if (GetOut(method_ptr) != variable &&
+        min_priority > GetOutPriority(method_ptr)) {
+      min_priority = GetOutPriority(method_ptr);
       min_priority_method = method.get();
     }
   }
@@ -101,55 +145,48 @@ Method* Constraint::PotentialOutputsMinMethod(Variable* variable) {
   return min_priority_method;
 }
 
-Priority Constraint::PotentialOutputsMinPriority(Variable* variable) {
-  Method* method = PotentialOutputsMinMethod(variable);
-  if (method == nullptr) {
-    return max_regular_priority;
-  } else {
-    return method->GetOutPriority();
-  }
+Priority PotentialOutputsMinPriority(const Constraint* constraint,
+                                     const Variable* variable) {
+  assert(constraint != nullptr);
+  assert(variable != nullptr);
+  const Method* method = PotentialOutputsMinMethod(constraint, variable);
+  return GetOutPriority(method);
 }
 
-Method* Constraint::OutputMinPriorityMethod() {
-  Priority min_priority = max_regular_priority;
+Method* OutputMinPriorityMethod(const Constraint* constraint) {
+  assert(constraint != nullptr);
+  Priority min_priority = Constraint::max_regular_priority;
   Method* min_priority_method = nullptr;
-  for (const auto& method : methods) {
-    if (min_priority >= method->GetOutPriority()) {
-      min_priority = method->GetOutPriority();
+  for (const auto& method : constraint->methods) {
+    Method* method_ptr = method.get();
+    if (min_priority >= GetOutPriority(method_ptr)) {
+      min_priority = GetOutPriority(method_ptr);
       min_priority_method = method.get();
     }
   }
   return min_priority_method;
 }
 
-Variable* Constraint::OutputMinPriorityVariable() {
-  return OutputMinPriorityMethod()->GetOut();
+Variable* OutputMinPriorityVariable(const Constraint* constraint) {
+  assert(constraint != nullptr);
+  return GetOut(OutputMinPriorityMethod(constraint));
 }
 
-void Constraint::SelectMethod(Method* constraint) {
-  selected_method = constraint;
+void MarkApplied(Constraint* constraint) {
+  assert(constraint != nullptr);
+  constraint->state = Constraint::State::Applied;
 }
 
-void Constraint::SelectMethodByIndex(IndexType index) {
-  selected_method = methods[index].get();
+void MarkUnused(Constraint* constraint) {
+  assert(constraint != nullptr);
+  assert(constraint->selected_method == nullptr);
+  constraint->state = Constraint::State::Unused;
 }
 
-void Constraint::MarkApplied() {
-  state = State::Applied;
-}
-
-void Constraint::MarkUnused() {
-  assert(selected_method == nullptr);
-  state = State::Unused;
-}
-
-void Constraint::MarkDisabled() {
-  assert(selected_method == nullptr);
-  state = State::Disabled;
-}
-
-void Constraint::SetSelectedMethodNull() {
-  selected_method = nullptr;
+void MarkDisabled(Constraint* constraint) {
+  assert(constraint != nullptr);
+  assert(constraint->selected_method == nullptr);
+  constraint->state = Constraint::State::Disabled;
 }
 
 std::ostream& operator<<(std::ostream& out, const Constraint::State& state) {
@@ -178,4 +215,4 @@ std::ostream& operator<<(std::ostream& out, const Constraint& constraint) {
   out << "\n";
   return out;
 }
-} // namespace NSPropertyModel
+} // namespace NSPropertyModel::detail

@@ -6,14 +6,15 @@ void ConstraintGraph::AddConstraint(Constraint&& constraint) {
   constraints_.push_back(std::make_unique<Constraint>(std::move(constraint)));
 }
 
-void ConstraintGraph::AddVariable(Variable variable) {
+void ConstraintGraph::AddVariable(Variable&& variable) {
   variables_.push_back(std::make_unique<Variable>(std::move(variable)));
 }
 
-Constraint* ConstraintGraph::FindLowestPriorityBlockedConstraint() {
+ConstraintGraph::Constraint*
+ConstraintGraph::FindLowestPriorityBlockedConstraint() const {
   Constraint* candidate = nullptr;
   for (const auto& constraint : constraints_) {
-    if (constraint->IsBlocked() &&
+    if (IsBlocked(constraint.get()) &&
         (candidate == nullptr || candidate->priority > constraint->priority)) {
       candidate = constraint.get();
     }
@@ -31,11 +32,11 @@ ConstraintGraph::AllConstraints() const {
   return constraints_;
 }
 
-Constraint*
+ConstraintGraph::Constraint*
 ConstraintGraph::ConstraintByIndex(ConstraintGraph::IndexType index) {
   return constraints_[index].get();
 }
-const Constraint*
+const ConstraintGraph::Constraint*
 ConstraintGraph::ConstraintByIndex(ConstraintGraph::IndexType index) const {
   return constraints_[index].get();
 }
@@ -48,10 +49,11 @@ const ConstraintGraph::VariableUPtrs& ConstraintGraph::AllVariables() const {
   return variables_;
 }
 
-Variable* ConstraintGraph::VariableByIndex(ConstraintGraph::IndexType index) {
+ConstraintGraph::Variable*
+ConstraintGraph::VariableByIndex(ConstraintGraph::IndexType index) {
   return variables_[index].get();
 }
-const Variable*
+const ConstraintGraph::Variable*
 ConstraintGraph::VariableByIndex(ConstraintGraph::IndexType index) const {
   return variables_[index].get();
 }
@@ -65,9 +67,8 @@ void ConstraintGraph::ExecutePlan(StepType& propagation_counter) {
    */
   SolutionGraphOnIndices solution(VariablesSize());
   for (const auto& constraint : AllConstraints()) {
-    if (constraint->IsApplied()) {
-      for (const auto& variable :
-           constraint->selected_method->GetInVariables()) {
+    if (IsApplied(constraint.get())) {
+      for (const auto& variable : GetInVariables(constraint->selected_method)) {
         solution[variable->global_index].push_back(constraint.get());
       }
     }
@@ -75,7 +76,7 @@ void ConstraintGraph::ExecutePlan(StepType& propagation_counter) {
 
   ConstraintPtrs execution_plan;
   for (const auto& constraint : constraints_) {
-    if (constraint->IsApplied()) {
+    if (IsApplied(constraint.get())) {
       FormExecutionPlan(solution, execution_plan, constraint.get(),
                         propagation_counter);
     }
@@ -84,7 +85,7 @@ void ConstraintGraph::ExecutePlan(StepType& propagation_counter) {
   std::reverse(execution_plan.begin(), execution_plan.end());
 
   for (const auto& constraint : execution_plan) {
-    constraint->Execute();
+    ExecuteConstraint(constraint);
   }
   ++propagation_counter;
 }
@@ -106,19 +107,19 @@ void ConstraintGraph::FormExecutionPlan(SolutionGraphOnIndices& solution,
                                         Constraint* constraint,
                                         StepType& propagation_counter) {
   assert(constraint != nullptr);
-  constraint->UpdateStep(propagation_counter);
-  Variable* output = constraint->GetSelectedMethodOut();
+  UpdateStep(constraint, propagation_counter);
+  Variable* output = GetSelectedMethodOut(constraint);
 
   for (const auto& next_constraints : solution[output->global_index]) {
-    assert(!next_constraints->IsProcessing(propagation_counter));
+    assert(!IsProcessing(next_constraints, propagation_counter));
 
-    if (!next_constraints->IsExecutedInCurrentStep(propagation_counter)) {
+    if (!IsExecutedInCurrentStep(next_constraints, propagation_counter)) {
       FormExecutionPlan(solution, execution_plan, next_constraints,
                         propagation_counter);
     }
   }
 
-  constraint->UpdateStep(propagation_counter + 1);
+  UpdateStep(constraint, propagation_counter + 1);
   execution_plan.push_back(constraint);
 }
 } // namespace NSPropertyModel

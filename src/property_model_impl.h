@@ -123,8 +123,9 @@ public:
 
     std::cout << "Constraints: " << "\n";
 
+    auto& all_constraints = c_graph_.AllConstraints();
     for (int i = 0; i < c_graph_.ConstraintsSize(); ++i) {
-      std::cout << "\t" << i << " " << *c_graph_.AllConstraints()[i].get();
+      std::cout << "\t" << i << " " << *all_constraints[i].get();
     }
   }
 
@@ -219,7 +220,7 @@ private:
   void CollectPotentialOutputs() {
     for (const auto& constraint : c_graph_.AllConstraints()) {
       for (const auto& method : constraint->methods) {
-        Variable* output = method->GetOut();
+        Variable* output = GetOut(method.get());
         output->involved_as_potential_output.push_back(constraint.get());
       }
     }
