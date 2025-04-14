@@ -16,11 +16,11 @@ const Variable* GetOut(const Method* method) {
 }
 
 const Priority GetOutPriority(const Method* method) {
-    if (method == nullptr) {
-        return Constraint::max_regular_priority;
-    } else {
-        return GetOut(method)->priority;
-    }
+  if (method == nullptr) {
+    return Constraint::max_regular_priority;
+  } else {
+    return GetOut(method)->priority;
+  }
 }
 
 const Method::VariablePtrs& GetInVariables(const Method* method) {
@@ -32,12 +32,6 @@ std::ostream& operator<<(std::ostream& out, const Method& method) {
   std::cout << "has out " << *method.out[0];
   return out;
 }
-
-Constraint::Constraint(Priority priority) : priority(priority) {};
-
-Constraint::Constraint(Priority priority,
-                       std::vector<std::unique_ptr<Method>> methods)
-    : priority(priority), methods(std::move(methods)) {};
 
 void PushBackMethod(Constraint* constraint, std::unique_ptr<Method> method) {
   assert(constraint != nullptr);

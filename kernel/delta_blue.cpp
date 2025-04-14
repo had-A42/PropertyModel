@@ -1,8 +1,9 @@
 #include "delta_blue.h"
 
 namespace NSPropertyModel {
-void DeltaBlue::CreateInitialSolution(ConstraintGraph& c_graph,
-                                      StepType& propagation_counter) {
+ConstraintGraph
+DeltaBlue::CreateInitialSolution(ConstraintGraph&& c_graph,
+                                 StepType& propagation_counter) {
 
   /* добавление ограничений разделено на два цикла для
    * последовательного удовлетворения сначала stay-ограничений, затем
@@ -25,6 +26,8 @@ void DeltaBlue::CreateInitialSolution(ConstraintGraph& c_graph,
       AddConstraint(c_graph, constraint_ptr, propagation_counter);
     }
   }
+
+  return std::move(c_graph);
 }
 
 void DeltaBlue::AddConstraint(ConstraintGraph& c_graph,

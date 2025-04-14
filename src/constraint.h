@@ -39,10 +39,6 @@ struct Constraint {
   using IndexType = Templates::IndexType;
   using StepType = Templates::StepType;
 
-  Constraint(Priority priority = max_regular_priority);
-
-  Constraint(Priority priority, std::vector<std::unique_ptr<Method>> methods);
-
   enum class State { Applied, Unused, Disabled };
 
   State state = State::Disabled;

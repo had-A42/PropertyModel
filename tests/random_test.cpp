@@ -30,6 +30,7 @@ using ValueVars = Value<int, double, std::string>;
 using OutVars = Out<int, std::string>;
 using PropertyModel = PropertyModel<DataVars, ValueVars, OutVars>;
 using Builder = PropertyModel::Builder;
+using IndexType = Templates::IndexType;
 
 void Query(PropertyModel& pm) {
   std::cout

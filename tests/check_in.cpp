@@ -38,6 +38,7 @@ using ValueVars = Value<bool>;
 using OutVars = Out<int>;
 using PropertyModel = PropertyModel<DataVars, ValueVars, OutVars>;
 using Builder = PropertyModel::Builder;
+using IndexType = Templates::IndexType;
 
 void Query(PropertyModel& pm) {
   std::cout

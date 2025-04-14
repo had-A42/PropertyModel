@@ -26,12 +26,13 @@ using ValueVars = Value<double, double, double, double>;
 using OutVars = Out<std::string>;
 using PropertyModel = PropertyModel<DataVars, ValueVars, OutVars>;
 using Builder = PropertyModel::Builder;
+using IndexType = Templates::IndexType;
 
 void Query(PropertyModel& pm) {
   std::cout
       << "_____________________________________________________________\n";
   std::string query;
-  int index;
+  IndexType index;
   std::cout << "Enter command (quit / update - update value / add - add "
                "constraint / remove - remove constraint / print - print system "
                "state): ";
@@ -41,7 +42,7 @@ void Query(PropertyModel& pm) {
     exit(0);
   } else if (query == "update") {
     char meta_marker;
-    int index;
+    IndexType index;
     std::cout << "Enter meta marker and index (D/V index): ";
     std::cin >> meta_marker;
 

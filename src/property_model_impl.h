@@ -161,7 +161,8 @@ private:
   }
 
   void CreateInitialSolution() {
-    DeltaBlue::CreateInitialSolution(c_graph_, propagation_counter_);
+    c_graph_ = DeltaBlue::CreateInitialSolution(std::move(c_graph_),
+                                                propagation_counter_);
   }
 
   void SetCurrentStayPriority(Priority priority) {

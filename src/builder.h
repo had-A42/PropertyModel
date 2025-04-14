@@ -33,7 +33,7 @@ public:
           SpecifyArithmeic<OutArgs>... out)
       : property_model_(std::move(data)..., std::move(value)...,
                         std::move(out)...),
-        new_constraint_(max_regular_priority) {};
+        new_constraint_({.priority = max_regular_priority}) {};
 
   void AddNewConstraint(Priority::Strength strength) {
     AddNewConstraintImpl(Priority{Priority::Status::Regular, strength});
@@ -70,7 +70,7 @@ private:
     if (!new_constraint_.methods.empty()) {
       property_model_->ReceiveConstraint(std::move(new_constraint_));
     }
-    new_constraint_ = Constraint(priority);
+    new_constraint_ = {.priority = priority};
   }
 
   template<typename MetaData>

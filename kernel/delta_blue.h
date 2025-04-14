@@ -21,8 +21,8 @@ class DeltaBlue {
   using Constraint = detail::Constraint;
 
 public:
-  static void CreateInitialSolution(ConstraintGraph& c_graph,
-                                    StepType& propagation_counter);
+  static ConstraintGraph CreateInitialSolution(ConstraintGraph&& c_graph,
+                                               StepType& propagation_counter);
 
   static void AddConstraint(ConstraintGraph& c_graph,
                             Constraint* new_constraint,
