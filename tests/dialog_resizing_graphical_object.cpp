@@ -2,6 +2,7 @@
 
 #include "../src/builder.h"
 #include "../src/property_model.h"
+#include "../src/except.h"
 
 namespace {
 double AbsFromRelAndInit(double rel, double init) {
@@ -93,7 +94,12 @@ private:
         double value;
         switch (index) {
         case 0:
-          std::cin >> value;
+            try {
+                std::cin >> value;
+            } catch (...) {
+                throw;
+            }
+
           pm->Set<Templates::Data<0>>(value);
           break;
         case 1:
@@ -150,6 +156,11 @@ private:
 } // namespace
 
 int main() {
-  Application app;
-  app.run();
+    try {
+        Application app;
+        app.run();
+    } catch(...) {
+        NSExcept::react();
+    }
+    return 0;
 }

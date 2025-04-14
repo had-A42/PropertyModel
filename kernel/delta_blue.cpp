@@ -145,8 +145,7 @@ void DeltaBlue::UpdatingPropagationImpl(Variable* variable,
     Variable* next_variable = GetSelectedMethodOut(constraint);
 
     if (IsProcessing(next_variable, propagation_counter)) {
-      std::cout << "ALARM: Cycle!!! Property Model is dying!!!\n";
-      exit(1); // TODO
+      throw std::runtime_error("Cycle is detected in constraint system");
     } else if (!IsUpdatedInCurrentStep(next_variable, propagation_counter)) {
       UpdatingPropagationImpl(next_variable, propagation_counter);
       UpdateStep(variable, propagation_counter + 1);

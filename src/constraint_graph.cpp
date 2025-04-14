@@ -118,7 +118,9 @@ void ConstraintGraph::FormExecutionPlan(SolutionGraphOnIndices& solution,
   Variable* output = GetSelectedMethodOut(constraint);
 
   for (const auto& next_constraints : solution[output->global_index]) {
-    assert(!IsProcessing(next_constraints, propagation_counter));
+      if (IsProcessing(next_constraints, propagation_counter)) {
+          throw std::runtime_error("Cycle is detected in constraint system");
+      }
 
     if (!IsExecutedInCurrentStep(next_constraints, propagation_counter)) {
       FormExecutionPlan(solution, execution_plan, next_constraints,

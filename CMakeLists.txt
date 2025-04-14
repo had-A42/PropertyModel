@@ -9,4 +9,5 @@ add_executable(pm tests/dialog_resizing_graphical_object.cpp
         src/priority.cpp
         src/variable.cpp
         src/constraint_graph.cpp
+        src/except.cpp
         kernel/delta_blue.cpp)

@@ -2,6 +2,7 @@
 
 #include "../src/builder.h"
 #include "../src/property_model.h"
+#include "../src/except.h"
 
 namespace {
 int AddDays(int check_in, int nights) {
@@ -142,6 +143,11 @@ private:
 } // namespace
 
 int main() {
-  Application app;
-  app.run();
+    try {
+        Application app;
+        app.run();
+    } catch(...) {
+        NSExcept::react();
+    }
+    return 0;
 }

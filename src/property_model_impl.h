@@ -143,7 +143,7 @@ public:
 
   template<typename MetaData>
   void Set(SpecializedTypeof<MetaData> value) {
-    Refto<MetaData>::Get(data_, value_, out_) = std::move(value);
+      Refto<MetaData>::Get(data_, value_, out_) = std::move(value);
 
     Constraint* stay = c_graph_.VariableByIndex(IndexGetter<MetaData>)->stay;
 
