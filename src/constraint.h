@@ -21,11 +21,9 @@ struct Method {
 void ExecuteMethod(const Method* method);
 
 Variable* GetOut(Method* method);
-
 const Variable* GetOut(const Method* method);
 
-const Priority GetOutPriority(const Method* method);
-
+Priority GetOutPriority(const Method* method);
 const Method::VariablePtrs& GetInVariables(const Method* method);
 
 std::ostream& operator<<(std::ostream& out, const Method& method);

@@ -12,26 +12,21 @@ DeltaBlue::CreateInitialSolution(ConstraintGraph&& c_graph,
    */
   for (const auto& constraint : c_graph.AllConstraints()) {
     Constraint* constraint_ptr = constraint.get();
-    if (IsStay(constraint_ptr)) {
-      SelectMethodByIndex(constraint_ptr, 0);
-      MarkApplied(constraint_ptr);
-      SetDeterminedBy(GetSelectedMethodOut(constraint_ptr), constraint_ptr);
-      UpdatePriority(GetSelectedMethodOut(constraint_ptr));
-    }
+    if (IsStay(constraint_ptr))
+      ConstraintGraph::InsertStayToSolution(constraint_ptr);
   }
 
   for (const auto& constraint : c_graph.AllConstraints()) {
     Constraint* constraint_ptr = constraint.get();
     if (!IsStay(constraint_ptr)) {
-      AddConstraint(c_graph, constraint_ptr, propagation_counter);
+      AddConstraint(constraint_ptr, propagation_counter);
     }
   }
 
   return std::move(c_graph);
 }
 
-void DeltaBlue::AddConstraint(ConstraintGraph& c_graph,
-                              Constraint* new_constraint,
+void DeltaBlue::AddConstraint(Constraint* new_constraint,
                               StepType& propagation_counter) {
   assert(new_constraint != nullptr);
 
@@ -40,6 +35,7 @@ void DeltaBlue::AddConstraint(ConstraintGraph& c_graph,
     return;
   }
 
+  assert(new_constraint->selected_method == nullptr);
   MarkUnused(new_constraint);
   if (!IsBlocked(new_constraint)) {
     if (IsRequired(new_constraint)) {
@@ -50,6 +46,7 @@ void DeltaBlue::AddConstraint(ConstraintGraph& c_graph,
 
   Method* method_candidate = OutputMinPriorityMethod(new_constraint);
   Variable* output_candidate = GetOut(method_candidate);
+
   ReversePath(output_candidate);
 
   output_candidate->determined_by = new_constraint;
@@ -64,7 +61,7 @@ void DeltaBlue::AddConstraint(ConstraintGraph& c_graph,
 void DeltaBlue::AddConstraintByIndex(ConstraintGraph& c_graph, IndexType index,
                                      StepType& propagation_counter) {
   Constraint* new_constraint = c_graph.ConstraintByIndex(index);
-  AddConstraint(c_graph, new_constraint, propagation_counter);
+  AddConstraint(new_constraint, propagation_counter);
 }
 
 void DeltaBlue::RemoveConstraint(ConstraintGraph& c_graph,
@@ -85,6 +82,7 @@ void DeltaBlue::RemoveConstraint(ConstraintGraph& c_graph,
   Variable* output = GetSelectedMethodOut(constraint_to_remove);
   SetDeterminedByNull(output);
   SetSelectedMethodNull(constraint_to_remove);
+  assert(constraint_to_remove->selected_method == nullptr);
   MarkDisabled(constraint_to_remove);
 
   Constraint* output_stay = GetStay(output);
@@ -96,7 +94,7 @@ void DeltaBlue::RemoveConstraint(ConstraintGraph& c_graph,
 
   Constraint* candidate = c_graph.FindLowestPriorityBlockedConstraint();
   if (candidate != nullptr) {
-    AddConstraint(c_graph, candidate, propagation_counter);
+    AddConstraint(candidate, propagation_counter);
   }
 }
 
@@ -107,8 +105,7 @@ void DeltaBlue::RemoveConstraintByIndex(ConstraintGraph& c_graph,
   RemoveConstraint(c_graph, constraint_to_remove, propagation_counter);
 }
 
-void DeltaBlue::UpdateStayPriority(ConstraintGraph& c_graph, Constraint* stay,
-                                   Priority priority,
+void DeltaBlue::UpdateStayPriority(Constraint* stay, Priority priority,
                                    StepType& propagation_counter) {
   assert(stay != nullptr);
   assert(IsStay(stay));
@@ -121,8 +118,9 @@ void DeltaBlue::UpdateStayPriority(ConstraintGraph& c_graph, Constraint* stay,
 
     SetSelectedMethodNull(stay);
   }
+  assert(stay->selected_method == nullptr);
   MarkDisabled(stay);
-  AddConstraint(c_graph, stay, propagation_counter);
+  AddConstraint(stay, propagation_counter);
 }
 
 void DeltaBlue::UpdatingPropagation(Variable* variable,

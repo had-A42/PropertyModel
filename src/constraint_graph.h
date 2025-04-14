@@ -26,7 +26,8 @@ public:
   void AddConstraint(Constraint&& constraint);
   void AddVariable(Variable&& variable);
 
-  Constraint* FindLowestPriorityBlockedConstraint() const;
+  [[nodiscard]] Constraint* FindLowestPriorityBlockedConstraint() const;
+  static void InsertStayToSolution(Constraint* constraint);
   void ExecutePlan(StepType& propagation_counter);
 
   // мб сделать приватными

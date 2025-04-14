@@ -58,6 +58,13 @@ ConstraintGraph::VariableByIndex(ConstraintGraph::IndexType index) const {
   return variables_[index].get();
 }
 
+void ConstraintGraph::InsertStayToSolution(Constraint* constraint) {
+  SelectMethodByIndex(constraint, 0);
+  MarkApplied(constraint);
+  SetDeterminedBy(GetSelectedMethodOut(constraint), constraint);
+  UpdatePriority(GetSelectedMethodOut(constraint));
+}
+
 void ConstraintGraph::ExecutePlan(StepType& propagation_counter) {
   ++propagation_counter;
   /*

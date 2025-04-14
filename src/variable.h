@@ -13,8 +13,6 @@ struct Variable {
 
   enum class Type { Data, Value, Out };
 
-  Variable(Type type, IndexType index, IndexType global_index);
-
   Type type;
   IndexType index;
   IndexType global_index;

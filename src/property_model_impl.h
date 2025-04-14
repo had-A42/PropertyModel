@@ -147,7 +147,7 @@ public:
 
     Constraint* stay = c_graph_.VariableByIndex(IndexGetter<MetaData>)->stay;
 
-    DeltaBlue::UpdateStayPriority(c_graph_, stay, current_stay_priority_,
+    DeltaBlue::UpdateStayPriority(stay, current_stay_priority_,
                                   propagation_counter_);
     ++current_stay_priority_;
 
@@ -163,6 +163,7 @@ private:
   void CreateInitialSolution() {
     c_graph_ = DeltaBlue::CreateInitialSolution(std::move(c_graph_),
                                                 propagation_counter_);
+    c_graph_.ExecutePlan(propagation_counter_);
   }
 
   void SetCurrentStayPriority(Priority priority) {

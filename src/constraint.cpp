@@ -3,10 +3,12 @@
 
 namespace NSPropertyModel::detail {
 void ExecuteMethod(const Method* method) {
+  assert(method != nullptr);
   method->action();
 };
 
 Variable* GetOut(Method* method) {
+  assert(method != nullptr);
   return method->out[0];
 }
 
@@ -15,7 +17,7 @@ const Variable* GetOut(const Method* method) {
   return method->out[0];
 }
 
-const Priority GetOutPriority(const Method* method) {
+Priority GetOutPriority(const Method* method) {
   if (method == nullptr) {
     return Constraint::max_regular_priority;
   } else {
@@ -173,13 +175,11 @@ void MarkApplied(Constraint* constraint) {
 
 void MarkUnused(Constraint* constraint) {
   assert(constraint != nullptr);
-  assert(constraint->selected_method == nullptr);
   constraint->state = Constraint::State::Unused;
 }
 
 void MarkDisabled(Constraint* constraint) {
   assert(constraint != nullptr);
-  assert(constraint->selected_method == nullptr);
   constraint->state = Constraint::State::Disabled;
 }
 

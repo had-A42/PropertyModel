@@ -24,6 +24,8 @@ public:
   using Builder = detail::Builder<DataTypes, ValueTypes, OutTypes>;
   friend Builder;
 
+  PropertyModel() = default;
+
   PMImpl* operator->() {
     return impl_.get();
   }
