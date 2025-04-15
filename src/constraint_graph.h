@@ -30,7 +30,6 @@ public:
   static void InsertStayToSolution(Constraint* constraint);
   void ExecutePlan(StepType& propagation_counter);
 
-  // мб сделать приватными
   ConstraintUPtrs& AllConstraints();
   [[nodiscard]] const ConstraintUPtrs& AllConstraints() const;
 
