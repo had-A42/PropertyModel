@@ -24,8 +24,8 @@ public:
   static ConstraintGraph CreateInitialSolution(ConstraintGraph&& c_graph,
                                                StepType& propagation_counter);
 
-  static void AddConstraintByIndex(ConstraintGraph& c_graph, IndexType index,
-                                   StepType& propagation_counter);
+    static void AddConstraintByIndex(ConstraintGraph& c_graph, IndexType index,
+                                     StepType& propagation_counter);
 
   static void RemoveConstraintByIndex(ConstraintGraph& c_graph, IndexType index,
                                       StepType& propagation_counter);

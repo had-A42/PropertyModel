@@ -132,6 +132,7 @@ public:
   void AddConstraint(IndexType constraint_index) {
     DeltaBlue::AddConstraintByIndex(c_graph_, constraint_index,
                                     propagation_counter_);
+
     c_graph_.ExecutePlan(propagation_counter_);
   }
 
@@ -145,7 +146,7 @@ public:
   void Set(SpecializedTypeof<MetaData> value) {
       Refto<MetaData>::Get(data_, value_, out_) = std::move(value);
 
-    Constraint* stay = c_graph_.VariableByIndex(IndexGetter<MetaData>)->stay;
+    Constraint* stay = GetStay(c_graph_.VariableByIndex(IndexGetter<MetaData>));
 
     DeltaBlue::UpdateStayPriority(stay, current_stay_priority_,
                                   propagation_counter_);
