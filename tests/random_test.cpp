@@ -1,8 +1,6 @@
 #include <cmath>
 
-#include "../src/builder.h"
-#include "../src/property_model.h"
-#include "../src/except.h"
+#include "pm.h"
 
 namespace {
 int f1_1(int b, int c) {
@@ -69,6 +67,8 @@ public:
     b.AddMethod<Templates::Out<1>, Templates::Value<2>, Templates::Data<2>>(f4);
 
     pm = b.ExtractPM();
+
+      pm->Print();
   }
 
   void run() {

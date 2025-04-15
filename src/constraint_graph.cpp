@@ -11,11 +11,11 @@ void ConstraintGraph::AddVariable(Variable&& variable) {
 }
 
 ConstraintGraph::Constraint*
-ConstraintGraph::FindLowestPriorityBlockedConstraint() const {
+ConstraintGraph::FindHighestPriorityBlockedConstraint() const {
   Constraint* candidate = nullptr;
   for (const auto& constraint : constraints_) {
     if (IsBlocked(constraint.get()) &&
-        (candidate == nullptr || candidate->priority > constraint->priority)) {
+        (candidate == nullptr || candidate->priority < constraint->priority)) {
       candidate = constraint.get();
     }
   }

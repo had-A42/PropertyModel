@@ -1,8 +1,6 @@
 #include <cmath>
 
-#include "../src/builder.h"
-#include "../src/property_model.h"
-#include "../src/except.h"
+#include "pm.h"
 
 namespace {
 int AddDays(int check_in, int nights) {
@@ -66,6 +64,8 @@ public:
     b.AddMethod<Templates::Data<0>>(CheckInShouldBeZero);
 
     pm = b.ExtractPM();
+
+      pm->Print();
   }
   void run() {
     std::string query;
@@ -99,26 +99,27 @@ private:
       switch (meta_marker) {
       case 'D':
         std::cin >> index;
-        if (index >= 3) {
-          std::cout << "Index out of range!\n";
-        }
-        std::cout << "Enter the value: ";
         switch (index) {
         case 0:
           int check_in;
+          std::cout << "Enter check in date: ";
           std::cin >> check_in;
           pm->Set<Templates::Data<0>>(check_in);
           break;
         case 1:
           int night;
+                std::cout << "Enter nights count: ";
           std::cin >> night;
           pm->Set<Templates::Data<1>>(night);
           break;
         case 2:
           int check_out;
+                std::cout << "Enter check out date: ";
           std::cin >> check_out;
           pm->Set<Templates::Data<2>>(check_out);
           break;
+          default:
+              std::cout << "Index out of range!\n";
         }
         break;
       default:

@@ -92,8 +92,9 @@ void DeltaBlue::RemoveConstraint(ConstraintGraph& c_graph,
 
   UpdatingPropagation(output, propagation_counter);
 
-  Constraint* candidate = c_graph.FindLowestPriorityBlockedConstraint();
+  Constraint* candidate = c_graph.FindHighestPriorityBlockedConstraint();
   if (candidate != nullptr) {
+      MarkDisabled(candidate);
     AddConstraint(candidate, propagation_counter);
   }
 }

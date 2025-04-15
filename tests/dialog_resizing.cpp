@@ -1,8 +1,6 @@
 #include <iostream>
 
-#include "../src/builder.h"
-#include "../src/property_model.h"
-#include "../src/except.h"
+#include "pm.h"
 
 namespace {
 double AbsFromRelAndInit(double rel, double init) {
